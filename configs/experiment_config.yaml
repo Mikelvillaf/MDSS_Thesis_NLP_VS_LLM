@@ -1,1 +1,19 @@
 # Experiment Config.Yaml
+random_seeds: [42, 1337, 2025]
+max_reviews: 50000
+year_range: [2018, 2023]
+categories:
+  - Books
+  - Beauty
+thresholds:
+  helpful: 0.75
+  unhelpful: 0.35
+models:
+  - random_forest
+  - gradient_boosting
+  - svm
+  - cnn
+  - rcnn
+llm:
+  provider: openai
+  model: gpt-4
