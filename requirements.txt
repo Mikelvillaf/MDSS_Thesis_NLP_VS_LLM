@@ -1,1 +1,10 @@
 # Add required packages here
+pandas
+numpy
+scikit-learn
+matplotlib
+tqdm
+openai
+pyyaml
+weave
+wandb

@@ -1,6 +1,6 @@
 # Predicting Helpfulness of Amazon Customer Reviews
 
-This project explores the prediction of review helpfulness on Amazon using various machine learning models and large language models (LLMs). It compares traditional feature-based ML classifiers (like Random Forest, SVM, and Gradient Boosting), deep learning approaches (CNN/RCNN), and LLM-based classification using GPT or DeepSeekAI.
+This project explores the prediction of review helpfulness on Amazon using various machine learning models and large language models (LLMs). It compares traditional feature-based ML classifiers (like Random Forest, SVM, and Gradient Boosting), deep learning approaches (CNN/RCNN), and LLM-based classification using GPT and DeepSeekAI.
 
 The experiment uses a subset of the [Amazon Reviews 2023 dataset](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023), which contains over 570 million customer reviews from 1996 to 2023.
 
@@ -17,6 +17,7 @@ amazon-helpfulness/
 ├── data/                 # Local review/meta files (not tracked by Git)
 ├── scripts/              # All processing and modeling logic
 ├── tests/                # Unit tests for reproducibility
+├── tracking/
 ├── configs/              # Configs for experiments and pipelines
 ├── results/              # Output: metrics, predictions, figures
 ├── main.py               # Orchestrates full experiment runs
@@ -65,9 +66,23 @@ Models are compared using:
 
 - **F1 Score**
 - **ROC-AUC**
+
 - **Inference Time / Cost** (esp. for LLMs)
 
 Experiments are run across multiple seeds and subsets for robustness.
+
+## Tracking with Weave (Weights & Biases)
+
+This project uses [Weave](https://wandb.ai/weave) from Weights & Biases to track data processing and model performance.
+
+To start tracking:
+
+1. Make sure you're logged in with `wandb login`
+2. The pipeline auto-initializes tracking on first run via:
+
+```python
+from tracking.wandb_init import init_tracking
+init_tracking("amazon-helpfulness")
 
 ## 💡 Reproducibility
 
@@ -86,3 +101,13 @@ If you use the Amazon Reviews dataset, please cite:
 
 Developed by [Mikel Villalabeitia](https://github.com/Mikelvillaf)  
 Dataset by McAuley Lab, UCSD
+
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Mikelvillaf/MDSS_Thesis_NLP_VS_LLM.git
+cd MDSS_Thesis_NLP_VS_LLM
+

@@ -170,3 +170,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 .DS_Store
+
+# Ignore raw Amazon review data
+data/*.jsonl
+data/*.jsonl.gz
