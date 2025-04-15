@@ -21,39 +21,54 @@ def build_features(
     df: pd.DataFrame,
     feature_set: Literal["structured", "nlp", "hybrid"] = "hybrid"
 ) -> Tuple[np.ndarray, np.ndarray, List[str]]:
-    # Make sure label exists
-    if "label" not in df.columns:
-        raise ValueError("Missing 'label' column in DataFrame.")
+    from sklearn.compose import ColumnTransformer
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.preprocessing import StandardScaler
 
-    features = []
+    # Drop rows with missing labels
+    df = df.dropna(subset=["label"])
+    df["label"] = df["label"].astype(int)
 
-    if feature_set in ["structured", "hybrid"]:
-        df['verified_encoded'] = df['verified_purchase'].astype(int) if 'verified_purchase' in df.columns else 0
-        df['sentiment_score'] = df['full_text'].apply(extract_sentiment)
+    # Add derived structured features
+    df["verified_encoded"] = df["verified_purchase"].astype(int) if "verified_purchase" in df.columns else 0
+    df["sentiment_score"] = df["full_text"].apply(extract_sentiment)
+    df["review_word_count"] = df["clean_text"].apply(lambda x: len(x.split()))
+    df["review_char_count"] = df["clean_text"].apply(len)
 
-        structured_cols = [
-            'rating',
-            'verified_encoded',
-            'review_word_count',
-            'review_char_count',
-            'sentiment_score'
-        ]
+    structured_cols = [
+        "rating",
+        "verified_encoded",
+        "review_word_count",
+        "review_char_count",
+        "sentiment_score"
+    ]
 
-        df[structured_cols] = df[structured_cols].fillna(0)
-        features.append(df[structured_cols])
-
-    if feature_set in ["nlp", "hybrid"]:
-        tfidf = TfidfVectorizer(
-            max_features=1000,
-            stop_words='english'
+    if feature_set == "structured":
+        featurizer = ColumnTransformer(
+            transformers=[
+                ("struct", StandardScaler(), structured_cols)
+            ],
+            remainder="drop"
         )
-        tfidf_matrix = tfidf.fit_transform(df['full_text'].fillna(""))
-        tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=tfidf.get_feature_names_out())
-        features.append(tfidf_df)
+    elif feature_set == "nlp":
+        featurizer = ColumnTransformer(
+            transformers=[
+                ("text", TfidfVectorizer(max_features=1000, stop_words="english"), "full_text")
+            ],
+            remainder="drop"
+        )
+    elif feature_set == "hybrid":
+        featurizer = ColumnTransformer(
+            transformers=[
+                ("struct", StandardScaler(), structured_cols),
+                ("text", TfidfVectorizer(max_features=1000, stop_words="english"), "full_text")
+            ],
+            remainder="drop"
+        )
+    else:
+        raise ValueError("Invalid feature_set. Choose from 'structured', 'nlp', or 'hybrid'.")
 
-    # Concatenate all features
-    X = pd.concat(features, axis=1)
-    X = StandardScaler().fit_transform(X)  # Optional: normalize
-    y = df['label'].astype(int).values
+    X = featurizer.fit_transform(df)
+    y = df["label"].values
 
-    return X, y, list(X.columns) if isinstance(X, pd.DataFrame) else []
+    return X, y, structured_cols + ["tfidf"]

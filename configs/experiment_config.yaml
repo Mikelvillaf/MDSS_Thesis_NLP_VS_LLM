@@ -1,10 +1,10 @@
-random_seeds: [42, 2025, 1337]
+random_seeds: [42]
 
 categories:
   - Digital_Music  # maps to data/Digital_Music.jsonl.gz
 
 year_range: [2018, 2023]
-max_reviews: 50000
+max_reviews: 10000
 
 temporal_split:
   train_years: [2018, 2019, 2020]
@@ -16,14 +16,8 @@ feature_set: hybrid  # options: structured, nlp, hybrid
 models_to_run:
   ml:
     - random_forest
-    - svm
-    - gradient_boosting
-  dl:
-    - cnn
-    - rcnn
+  dl: []
 
-llm_models:
-  - chatgpt
-  - deepseek
+llm_models: []
 
 output_dir: results/

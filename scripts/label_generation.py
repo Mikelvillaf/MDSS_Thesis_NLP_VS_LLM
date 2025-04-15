@@ -16,14 +16,14 @@ def load_data(filepath):
 
 @weave.op()
 def generate_labels(df):
-    df = df.dropna(subset=['helpful_votes', 'parent_asin'])
-    df = df[df['helpful_votes'] > 0]
+    df = df.dropna(subset=['helpful_vote', 'parent_asin'])
+    df = df[df['helpful_vote'] > 0]
 
-    total_votes_per_product = df.groupby('parent_asin')['helpful_votes'].sum().to_dict()
+    total_votes_per_product = df.groupby('parent_asin')['helpful_vote'].sum().to_dict()
 
     tqdm.pandas(desc="Calculating helpfulness ratios")
     df['helpful_ratio'] = df.progress_apply(
-        lambda row: row['helpful_votes'] / total_votes_per_product.get(row['parent_asin'], 1),
+        lambda row: row['helpful_vote'] / total_votes_per_product.get(row['parent_asin'], 1),
         axis=1
     )
 

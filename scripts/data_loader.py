@@ -11,7 +11,8 @@ from typing import List, Optional
 def load_reviews(
     filepath: str,
     year_range: Optional[List[int]] = None,
-    max_rows: Optional[int] = None
+    max_rows: Optional[int] = None,
+    seed: Optional[int] = None
 ) -> pd.DataFrame:
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"File not found: {filepath}")
@@ -19,9 +20,7 @@ def load_reviews(
     print(f"📥 Loading reviews from: {filepath}")
     data = []
     with open(filepath, 'r') as f:
-        for i, line in enumerate(f):
-            if max_rows and i >= max_rows:
-                break
+        for line in f:
             try:
                 record = json.loads(line.strip())
                 data.append(record)
@@ -36,7 +35,10 @@ def load_reviews(
     if year_range and 'year' in df.columns:
         df = df[(df['year'] >= year_range[0]) & (df['year'] <= year_range[1])]
 
-    print(f"✅ Loaded {len(df)} reviews after filtering")
+    if max_rows is not None:
+        df = df.sample(n=min(max_rows, len(df)), random_state=seed)
+
+    print(f"✅ Loaded {len(df)} reviews after filtering and sampling")
     return df
 
 @weave.op()

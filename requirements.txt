@@ -8,3 +8,5 @@ openai
 pyyaml
 weave
 wandb
+textblob
+tensorflow
