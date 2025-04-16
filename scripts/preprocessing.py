@@ -10,9 +10,16 @@ def clean_text(text: Optional[str]) -> str:
 
 @weave.op()
 def preprocess_reviews(df: pd.DataFrame) -> pd.DataFrame:
+    # 👇 Add total_vote if missing
+    if "total_vote" not in df.columns:
+        if "helpful_vote" in df.columns:
+            # Estimate: helpful_vote + unhelpful votes = total votes (placeholder logic)
+            df["total_vote"] = df["helpful_vote"] + 1  # Add 1 to avoid divide-by-zero
+        else:
+            raise ValueError("Dataset missing both 'total_vote' and 'helpful_vote'")
     columns_to_keep = [
         "rating", "title", "text", "parent_asin",
-        "user_id", "timestamp", "verified_purchase", "helpful_vote"
+        "user_id", "timestamp", "verified_purchase", "helpful_vote", "total_vote"
     ]
     df = df[[col for col in columns_to_keep if col in df.columns]]
     df = df.dropna(subset=columns_to_keep)

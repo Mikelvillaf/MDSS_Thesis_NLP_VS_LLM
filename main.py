@@ -43,12 +43,19 @@ def run_pipeline_for_seed(config, seed):
             test_year=config["temporal_split"]["test_year"]
         )
 
-        # 💡 Label each split independently
-        top_p = config["labeling"]["top_percentile"]
-        bottom_p = config["labeling"]["bottom_percentile"]
-        train = label_generation.generate_labels(train, top_percentile=top_p, bottom_percentile=bottom_p)
-        val = label_generation.generate_labels(val, top_percentile=top_p, bottom_percentile=bottom_p)
-        test = label_generation.generate_labels(test, top_percentile=top_p, bottom_percentile=bottom_p)
+        print("⚠️ helpful_ratio stats")
+        print(df["helpful_ratio"].describe())
+        print("👉 Count helpful (>= 0.75):", (df["helpful_ratio"] >= 0.75).sum())
+        print("👉 Count unhelpful (<= 0.35):", (df["helpful_ratio"] <= 0.35).sum())
+        print("👉 Count between thresholds:", ((df["helpful_ratio"] > 0.35) & (df["helpful_ratio"] < 0.75)).sum())
+        print("NaNs in helpful_ratio:", df["helpful_ratio"].isna().sum())
+
+# 💡 Label each split independently using config mode
+        label_cfg = config["labeling"]
+
+        train = label_generation.generate_labels(train, **label_cfg)
+        val = label_generation.generate_labels(val, **label_cfg)
+        test = label_generation.generate_labels(test, **label_cfg)
 
         print("✅ Before building features:")
         print("Train shape:", train.shape)
