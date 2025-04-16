@@ -3,21 +3,31 @@ random_seeds: [42]
 categories:
   - Digital_Music  # maps to data/Digital_Music.jsonl.gz
 
-year_range: [2018, 2023]
-max_reviews: 10000
+year_range: [2010, 2023]
+max_reviews: 200000
+
+labeling:
+  top_percentile: 0.2
+  bottom_percentile: 0.4
 
 temporal_split:
-  train_years: [2018, 2019, 2020]
-  val_year: 2021
-  test_year: 2022
+  train_years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
+  val_year: 2020
+  test_year: 2021
 
 feature_set: hybrid  # options: structured, nlp, hybrid
 
 models_to_run:
   ml:
-    - random_forest
+    - svm
   dl: []
 
 llm_models: []
 
 output_dir: results/
+
+labeling:
+  method: "threshold"  # instead of "percentile"
+  helpful_ratio_min: 0.75
+  unhelpful_ratio_max: 0.35
+  min_total_votes: 10

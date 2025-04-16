@@ -27,6 +27,7 @@ def run_pipeline_for_seed(config, seed):
     for category in config["categories"]:
         print(f"\n📦 Running category: {category} | Seed: {seed}")
         path = f"data/{category}.jsonl.gz"
+
         df = data_loader.load_reviews(
             filepath=path,
             year_range=config["year_range"],
@@ -34,22 +35,27 @@ def run_pipeline_for_seed(config, seed):
             seed=seed
         )
 
-        df = label_generation.generate_labels(df)
-        df = preprocessing.preprocess_reviews(df)
-
+        df = preprocessing.preprocess_reviews(df)  # timestamp → year
         train, val, test = data_loader.temporal_split(
             df,
             train_years=config["temporal_split"]["train_years"],
             val_year=config["temporal_split"]["val_year"],
             test_year=config["temporal_split"]["test_year"]
         )
-        
+
+        # 💡 Label each split independently
+        top_p = config["labeling"]["top_percentile"]
+        bottom_p = config["labeling"]["bottom_percentile"]
+        train = label_generation.generate_labels(train, top_percentile=top_p, bottom_percentile=bottom_p)
+        val = label_generation.generate_labels(val, top_percentile=top_p, bottom_percentile=bottom_p)
+        test = label_generation.generate_labels(test, top_percentile=top_p, bottom_percentile=bottom_p)
 
         print("✅ Before building features:")
         print("Train shape:", train.shape)
         print("Test shape:", test.shape)
         print("Train labels:", train["label"].value_counts(dropna=False))
         print("Contains NaNs in label:", train["label"].isna().sum())
+
         if config["models_to_run"].get("ml"):
             X_train, y_train, _ = feature_engineering.build_features(train, feature_set=config["feature_set"])
             X_test, y_test, _ = feature_engineering.build_features(test, feature_set=config["feature_set"])
@@ -59,7 +65,7 @@ def run_pipeline_for_seed(config, seed):
                 model_fn = MODEL_DISPATCH[model_name]
                 results, model = model_fn(X_train, y_train)
                 y_pred = model.predict(X_test)
-                y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
+                y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") and model.predict_proba(X_test).shape[1] > 1 else None
                 evaluation.evaluate_model(
                     y_true=y_test,
                     y_pred=y_pred,
@@ -76,10 +82,6 @@ def run_pipeline_for_seed(config, seed):
             for model_name in config["models_to_run"]["dl"]:
                 print(f"\n🧠 Training DL model: {model_name}")
                 model_fn = MODEL_DISPATCH[model_name]
-                
-                print("🧪 X_train shape:", X_train.shape)
-                print("🧪 y_train shape:", y_train.shape)
-                
                 results, model = model_fn(texts_train, labels_train)
                 preds = (model.predict(texts_test) > 0.5).astype("int32")
                 evaluation.evaluate_model(

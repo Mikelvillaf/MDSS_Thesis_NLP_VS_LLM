@@ -1,58 +1,57 @@
 import pandas as pd
-from tqdm import tqdm
-import os
 import weave
-from tracking.wandb_init import init_tracking
-
-# --- CONFIG ---
-INPUT_FILE = "data/Books.jsonl"
-OUTPUT_FILE = "data/Books_labeled.parquet"
-HELPFUL_THRESHOLD = 0.75
-UNHELPFUL_THRESHOLD = 0.35
 
 @weave.op()
-def load_data(filepath):
-    return pd.read_json(filepath, lines=True)
+def generate_labels(
+    df: pd.DataFrame,
+    mode: str = "percentile",
+    top_percentile: float = 0.2,
+    bottom_percentile: float = 0.4,
+    helpful_ratio_min: float = 0.75,
+    unhelpful_ratio_max: float = 0.35,
+    min_total_votes: int = 10
+) -> pd.DataFrame:
+    """
+    Dual-mode label generation for review helpfulness.
+    Modes:
+    - 'percentile': rank-based top/bottom X%
+    - 'threshold': use helpful_vote / total_votes with min vote requirement
+    """
 
-@weave.op()
-def generate_labels(df):
-    df = df.dropna(subset=['helpful_vote', 'parent_asin'])
-    df = df[df['helpful_vote'] > 0]
+    df = df.copy()
 
-    total_votes_per_product = df.groupby('parent_asin')['helpful_vote'].sum().to_dict()
+    if mode == "threshold":
+        if "helpful_vote" not in df.columns or "total_vote" not in df.columns:
+            raise ValueError("Missing helpful_vote or total_vote column for threshold labeling")
 
-    tqdm.pandas(desc="Calculating helpfulness ratios")
-    df['helpful_ratio'] = df.progress_apply(
-        lambda row: row['helpful_vote'] / total_votes_per_product.get(row['parent_asin'], 1),
-        axis=1
-    )
+        df = df[df["total_vote"] >= min_total_votes]
+        df["helpful_ratio"] = df["helpful_vote"] / df["total_vote"]
 
-    def assign_label(ratio):
-        if ratio >= HELPFUL_THRESHOLD:
-            return 1
-        elif ratio <= UNHELPFUL_THRESHOLD:
-            return 0
-        else:
-            return None
+        df["label"] = None
+        df.loc[df["helpful_ratio"] >= helpful_ratio_min, "label"] = 1
+        df.loc[df["helpful_ratio"] <= unhelpful_ratio_max, "label"] = 0
 
-    df['label'] = df['helpful_ratio'].apply(assign_label)
-    df = df.dropna(subset=['label'])
+        labeled_df = df[df["label"].isin([0, 1])].copy()
+        labeled_df["label"] = labeled_df["label"].astype(int)
 
-    return df
+    elif mode == "percentile":
+        df = df.sort_values("helpful_vote", ascending=False).reset_index(drop=True)
+        total = len(df)
+        top_n = int(total * top_percentile)
+        bottom_n = int(total * bottom_percentile)
 
-def main():
-    init_tracking("amazon-helpfulness")  # 🐝 Start tracking
+        df["label"] = None
+        df.iloc[:top_n, df.columns.get_loc("label")] = 1
+        df.iloc[-bottom_n:, df.columns.get_loc("label")] = 0
 
-    print(f"📂 Loading: {INPUT_FILE}")
-    df = load_data(INPUT_FILE)
+        labeled_df = df[df["label"].isin([0, 1])].copy()
+        labeled_df["label"] = labeled_df["label"].astype(int)
 
-    print("⚙️  Generating helpful/unhelpful labels...")
-    labeled_df = generate_labels(df)
+    else:
+        raise ValueError("Invalid labeling mode. Choose 'percentile' or 'threshold'.")
 
-    print(f"💾 Saving labeled data to: {OUTPUT_FILE}")
-    labeled_df.to_parquet(OUTPUT_FILE, index=False)
+    print(f"✅ Labeled dataset: {len(labeled_df)} rows "
+        f"(Helpful: {(labeled_df['label'] == 1).sum()}, "
+        f"Unhelpful: {(labeled_df['label'] == 0).sum()})")
 
-    print(f"✅ Done! {len(labeled_df)} labeled reviews written.")
-
-if __name__ == "__main__":
-    main()
+    return labeled_df
