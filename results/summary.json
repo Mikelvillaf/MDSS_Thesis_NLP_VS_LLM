@@ -1,10 +1,18 @@
 {
-    "svm": {
-        "avg_f1": 0.6299119530125624,
-        "avg_roc_auc": 0.6092582633367267
+    "CDs_and_Vinyl_svm": {
+        "avg_accuracy": 0.7025510204081633,
+        "std_accuracy": 0.0,
+        "avg_f1": 0.7025286419141799,
+        "std_f1": 0.0,
+        "avg_roc_auc": 0.776170866305706,
+        "std_roc_auc": 0.0
     },
-    "random_forest": {
-        "avg_f1": 0.6441305083873808,
-        "avg_roc_auc": 0.6354073306532474
+    "Digital_Music_svm": {
+        "avg_accuracy": 0.6885964912280702,
+        "std_accuracy": 0.0,
+        "avg_f1": 0.6827313172490838,
+        "std_f1": 0.0,
+        "avg_roc_auc": 0.7224915358571868,
+        "std_roc_auc": 0.0
     }
 }

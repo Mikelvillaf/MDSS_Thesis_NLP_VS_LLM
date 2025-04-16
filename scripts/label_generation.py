@@ -11,13 +11,6 @@ def generate_labels(
     unhelpful_ratio_max: float = 0.35,
     min_total_votes: int = 10
 ) -> pd.DataFrame:
-    """
-    Dual-mode label generation for review helpfulness.
-    Modes:
-    - 'percentile': rank-based top/bottom X%
-    - 'threshold': use helpful_vote / total_votes with min vote requirement
-    """
-
     df = df.copy()
 
     if mode == "threshold":
@@ -26,6 +19,14 @@ def generate_labels(
 
         df = df[df["total_vote"] >= min_total_votes]
         df["helpful_ratio"] = df["helpful_vote"] / df["total_vote"]
+
+        # ✅ NOW it's safe to print
+        print("📊 Helpful ratio stats:")
+        print(df["helpful_ratio"].describe())
+        print("✅ Helpful (>= min):", (df["helpful_ratio"] >= helpful_ratio_min).sum())
+        print("✅ Unhelpful (<= max):", (df["helpful_ratio"] <= unhelpful_ratio_max).sum())
+        print("⚠️ Between thresholds:", ((df["helpful_ratio"] > unhelpful_ratio_max) & (df["helpful_ratio"] < helpful_ratio_min)).sum())
+        print("❌ NaNs in helpful_ratio:", df["helpful_ratio"].isna().sum())
 
         df["label"] = None
         df.loc[df["helpful_ratio"] >= helpful_ratio_min, "label"] = 1

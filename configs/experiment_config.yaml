@@ -1,21 +1,33 @@
 random_seeds: [42]
 
 categories:
-  - Digital_Music  # maps to data/Digital_Music.jsonl.gz
+  #- Digital_Music
+  #- Books
+  - CDs_and_Vinyl
 
 year_range: [2010, 2023]
-max_reviews: 200000
+# max_reviews: 200000 # REMOVE this - we load all first
 
 labeling:
-  top_percentile: 0.2
-  bottom_percentile: 0.4
+  mode: "threshold" # Keep this to indicate the method for identifying candidates
+  helpful_ratio_min: 0.75
+  unhelpful_ratio_max: 0.25
+  min_total_votes: 3
 
-temporal_split:
+temporal_split_years: # RENAME for clarity
   train_years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
   val_year: 2020
   test_year: 2021
 
-feature_set: hybrid  # options: structured, nlp, hybrid
+# ADD this section for balanced sampling
+balanced_sampling:
+  samples_per_class: # Target number of samples per class (0 and 1)
+    train: 10000 # Example: Aim for 10k helpful + 10k unhelpful for training
+    val: 1000  # Example: Aim for 1k helpful + 1k unhelpful for validation
+    test: 1000 # Example: Aim for 1k helpful + 1k unhelpful for testing
+  # Note: Actual numbers might be lower if insufficient candidates exist in a split/class.
+
+feature_set: hybrid
 
 models_to_run:
   ml:
@@ -25,9 +37,3 @@ models_to_run:
 llm_models: []
 
 output_dir: results/
-
-labeling:
-  mode: "threshold"  # instead of "percentile"
-  helpful_ratio_min: 0.75
-  unhelpful_ratio_max: 0.35
-  min_total_votes: 10
