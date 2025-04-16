@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+#files
+eda.ipynb
+generate_structure.py
+
 # Distribution / packaging
 .Python
 build/
