@@ -1,9 +1,9 @@
 random_seeds: [42]
 
 categories:
-  #- Digital_Music
+  - Digital_Music
   #- Books
-  - CDs_and_Vinyl
+  # - CDs_and_Vinyl
 
 year_range: [2010, 2023]
 # max_reviews: 200000 # REMOVE this - we load all first
@@ -23,8 +23,8 @@ temporal_split_years: # RENAME for clarity
 balanced_sampling:
   samples_per_class: # Target number of samples per class (0 and 1)
     train: 10000 # Example: Aim for 10k helpful + 10k unhelpful for training
-    val: 1000  # Example: Aim for 1k helpful + 1k unhelpful for validation
-    test: 1000 # Example: Aim for 1k helpful + 1k unhelpful for testing
+    val: 5000  # Example: Aim for 1k helpful + 1k unhelpful for validation
+    test: 5000 # Example: Aim for 1k helpful + 1k unhelpful for testing
   # Note: Actual numbers might be lower if insufficient candidates exist in a split/class.
 
 feature_set: hybrid
