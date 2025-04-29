@@ -1,0 +1,8 @@
+{
+    "CDs_and_Vinyl_svm": {
+        "avg_accuracy": 0.6874,
+        "avg_f1": 0.6832,
+        "avg_roc_auc": null,
+        "run_count": 1
+    }
+}

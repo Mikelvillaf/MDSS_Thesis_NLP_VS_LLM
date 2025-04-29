@@ -1,38 +1,65 @@
 random_seeds: [42]
 
 categories:
-  - Digital_Music
+  # - Digital_Music
   #- Books
-  # - CDs_and_Vinyl
+  - CDs_and_Vinyl
 
 year_range: [2010, 2023]
 # max_reviews: 200000 # REMOVE this - we load all first
 
 labeling:
-  mode: "threshold" # Keep this to indicate the method for identifying candidates
+  mode: "threshold" # Or "threshold"
   helpful_ratio_min: 0.75
   unhelpful_ratio_max: 0.25
   min_total_votes: 3
+  top_percentile: 0.25    # Example value
+  bottom_percentile: 0.25 # Example value
+
+  # --- Length Filter Params ---
+  use_length_filter: true      # Set to true to enable
+  min_review_words: 15         # Min words (adjust as needed)
+  max_review_words: 750        # Max words (adjust as needed)
 
 temporal_split_years: # RENAME for clarity
   train_years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
   val_year: 2020
   test_year: 2021
 
-# ADD this section for balanced sampling
+# Select True in this section for balanced sampling
 balanced_sampling:
-  samples_per_class: # Target number of samples per class (0 and 1)
-    train: 10000 # Example: Aim for 10k helpful + 10k unhelpful for training
-    val: 5000  # Example: Aim for 1k helpful + 1k unhelpful for validation
-    test: 5000 # Example: Aim for 1k helpful + 1k unhelpful for testing
-  # Note: Actual numbers might be lower if insufficient candidates exist in a split/class.
+  use_strict_balancing: true # <-- ADD THIS (Set to true or false)
+  samples_per_class: # Target number of samples per class (0 and 1) - Used only if use_strict_balancing is true
+    train: 10000
+    val: 1000
+    test: 1000
+  # --- NEW --- Maximum total samples per split if use_strict_balancing is false
+  max_total_samples_imbalanced:
+    train: 10000 # Example: Limit train set to 100k total rows
+    val: 1000   # Example: Limit val set to 10k total rows
+    test: 1000  # Example: Limit test set to 10k total rows
+# ... (other config sections) ...
 
-feature_set: hybrid
+feature_set: hybrid # Or 'structured', 'nlp' or 'hybrid'
+text_max_features: 1000 # If using TF-IDF
+
+# Add DL specific params if you want to control them from config
+dl_max_words: 10000
+dl_max_len: 300
+dl_embedding_dim: 64
+dl_epochs: 5
+dl_batch_size: 64
 
 models_to_run:
   ml:
     - svm
-  dl: []
+    # - random_forest
+    # - gradient_boosting
+  dl:
+    # - cnn
+    # - rcnn
+
+# ... (rest of config) ...
 
 llm_models: []
 
