@@ -1,0 +1,43 @@
+{
+    "model": "CDs_and_Vinyl_gpt-3.5-turbo_zero_shot_seed42",
+    "accuracy": 0.44,
+    "f1_score": 0.4073333333333333,
+    "roc_auc": "N/A",
+    "classification_report": {
+        "0": {
+            "precision": 0.46153846153846156,
+            "recall": 0.2222222222222222,
+            "f1-score": 0.3,
+            "support": 27.0
+        },
+        "1": {
+            "precision": 0.43243243243243246,
+            "recall": 0.6956521739130435,
+            "f1-score": 0.5333333333333333,
+            "support": 23.0
+        },
+        "accuracy": 0.44,
+        "macro avg": {
+            "precision": 0.446985446985447,
+            "recall": 0.45893719806763283,
+            "f1-score": 0.41666666666666663,
+            "support": 50.0
+        },
+        "weighted avg": {
+            "precision": 0.4481496881496882,
+            "recall": 0.44,
+            "f1-score": 0.4073333333333333,
+            "support": 50.0
+        }
+    },
+    "confusion_matrix_values": [
+        [
+            6,
+            21
+        ],
+        [
+            7,
+            16
+        ]
+    ]
+}

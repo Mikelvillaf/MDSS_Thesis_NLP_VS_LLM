@@ -1,0 +1,14 @@
+{
+    "CDs_and_Vinyl_gpt-3.5-turbo_few_shot": {
+        "avg_accuracy": 0.42,
+        "avg_f1": 0.3919,
+        "avg_roc_auc": null,
+        "run_count": 1
+    },
+    "CDs_and_Vinyl_gpt-3.5-turbo_zero_shot": {
+        "avg_accuracy": 0.44,
+        "avg_f1": 0.4073,
+        "avg_roc_auc": null,
+        "run_count": 1
+    }
+}
