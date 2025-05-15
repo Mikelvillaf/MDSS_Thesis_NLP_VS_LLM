@@ -176,5 +176,10 @@ cython_debug/
 .DS_Store
 
 # Ignore raw Amazon review data
+eda.ipynb
+results/
+tests/
+tracking/
+data/
 data/*.jsonl
 data/*.jsonl.gz

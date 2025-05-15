@@ -1,8 +1,0 @@
-{
-    "CDs_and_Vinyl_rcnn_text": {
-        "avg_accuracy": 0.715,
-        "avg_f1": 0.7122,
-        "avg_roc_auc": 0.7932,
-        "run_count": 1
-    }
-}

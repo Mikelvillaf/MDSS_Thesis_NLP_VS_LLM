@@ -1,0 +1,45 @@
+{
+    "full_model_name_with_seed": "CDs_and_Vinyl_cnn_Hybrid_seed42",
+    "category": "CDs_and_Vinyl",
+    "model_identifier": "cnn_Hybrid",
+    "f1_score": 0.7270952609880104,
+    "accuracy": 0.7270992366412213,
+    "classification_report": {
+        "0": {
+            "precision": 0.7288461538461538,
+            "recall": 0.7232824427480916,
+            "f1-score": 0.7260536398467433,
+            "support": 1572.0
+        },
+        "1": {
+            "precision": 0.7253787878787878,
+            "recall": 0.7309160305343512,
+            "f1-score": 0.7281368821292775,
+            "support": 1572.0
+        },
+        "accuracy": 0.7270992366412213,
+        "macro avg": {
+            "precision": 0.7271124708624708,
+            "recall": 0.7270992366412214,
+            "f1-score": 0.7270952609880104,
+            "support": 3144.0
+        },
+        "weighted avg": {
+            "precision": 0.7271124708624709,
+            "recall": 0.7270992366412213,
+            "f1-score": 0.7270952609880104,
+            "support": 3144.0
+        }
+    },
+    "roc_auc": 0.803662535853259,
+    "confusion_matrix_values": [
+        [
+            1137,
+            435
+        ],
+        [
+            423,
+            1149
+        ]
+    ]
+}

@@ -1,177 +1,125 @@
 # Configuration file for the Review Helpfulness Prediction Pipeline
 
 # --- General Settings ---
-random_seeds: [42] # List of random seeds for ensuring reproducibility across runs. One run per seed.
+random_seeds: [42] #, 123, 2025] # List of random seeds for ensuring reproducibility across runs. One run per seed.
 
 # --- Data Source ---
+
+# Set to a number (e.g., 1000000) to limit, or null/omit to load all.
+max_initial_rows_per_category: 1000000 # Example: Load up to 1 million rows before any filtering
+
 categories:
-  # List the dataset categories to process. Corresponds to filenames (e.g., 'CDs_and_Vinyl.jsonl').
-  # Available options depend on your data folder.
-  - CDs_and_Vinyl
-  # - Digital_Music
+  - CDs_and_Vinyl # Example category
   # - Books
-  # - ... other categories ...
+  # - Home_and_Kitchen
+  # - Beauty_and_Personal_Care
+  # - Digital_Music
+  # - Cell_Phones_and_Accessories
+
 
 year_range: [2010, 2023] # Inclusive range [start_year, end_year] to filter reviews by timestamp.
 
 # --- Labeling Strategy ---
-# Defines how helpful (1) and unhelpful (0) labels are assigned to reviews.
 labeling:
-  # Method for labeling:
-  # 'threshold': Use helpful_ratio and total_vote thresholds.
-  # 'percentile': Use top/bottom percentiles of helpful_vote count (filtered by min_total_votes).
-  mode: "threshold"
-
-  # --- Threshold Mode Parameters (Used only if mode: 'threshold') ---
-  helpful_ratio_min: 0.75     # Minimum ratio (helpful_vote / total_vote) to be labeled as helpful (1).
-  unhelpful_ratio_max: 0.25   # Maximum ratio (helpful_vote / total_vote) to be labeled as unhelpful (0).
-
-  # --- Percentile Mode Parameters (Used only if mode: 'percentile') ---
-  top_percentile: 0.25    # Top X% of reviews by helpful_vote count are labeled helpful (1).
-  bottom_percentile: 0.25 # Bottom Y% of reviews by helpful_vote count are labeled unhelpful (0).
-
-  # --- Common Labeling Parameters ---
-  min_total_votes: 3      # Minimum total votes (sum of helpful_vote for the product) a review must have to be considered for labeling.
-
-  # --- Optional Length Filter (Applied BEFORE labeling logic) ---
-  use_length_filter: true      # Set to true to enable filtering by review word count.
-  min_review_words: 15         # Minimum word count for a review to be kept (if use_length_filter: true).
-  max_review_words: 500        # Maximum word count for a review to be kept (if use_length_filter: true).
+  mode: "percentile" # 'threshold' or 'percentile'
+  helpful_ratio_min: 0.75
+  unhelpful_ratio_max: 0.25
+  top_percentile: 0.15    # Used if mode: 'percentile'
+  bottom_percentile: 0.15 # Used if mode: 'percentile'
+  min_total_votes: 1      # Min votes for a review's product to be considered for labeling.
+  use_length_filter: true
+  min_review_words: 15
+  max_review_words: 750 # Consider aligning with paper (e.g., 500)
 
 # --- Temporal Data Splitting ---
-# Defines how the labeled data is split into train, validation, and test sets based on review year.
 temporal_split_years:
-  # List of years OR a range [start, end] for the training set.
   train_years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
-  val_year: 2020           # Single year for the validation set.
-  test_year: 2021          # Single year for the test set.
+  val_year: 2020
+  test_year: 2021
 
 # --- Data Sampling Strategy ---
-# Controls how samples are drawn for each split (train/val/test).
 balanced_sampling:
-  # If true, aims for strict class balance (50/50) using 'samples_per_class'.
-  # If false, uses natural class distribution, optionally limited by 'max_total_samples_imbalanced'.
-  use_strict_balancing: true
-
-  # --- Strict Balancing Parameters (Used only if use_strict_balancing: true) ---
-  # Target number of samples *per class* (0 and 1) for each split.
-  # The actual number might be lower if fewer samples are available for a class.
+  use_strict_balancing: true # Target 50/50 splits for ML/DL train/val/test
   samples_per_class:
-    train: 10000
-    val: 1000
-    test: 1000
-
-  # --- Imbalanced Sampling Parameters (Used only if use_strict_balancing: false) ---
-  # Optional maximum *total* number of samples per split. Preserves natural class ratio.
-  # Set to null or omit a split key (e.g., train) to use all available data for that split.
-  max_total_samples_imbalanced:
-    train: null # Use all available training data
-    val: null   # Use all available validation data
-    test: null  # Use all available test data
-    # Example limits:
-    # train: 100000
-    # val: 10000
-    # test: 10000
+    train: 40000
+    val: 5000
+    test: 5000
+  max_total_samples_imbalanced: # Used if use_strict_balancing: false
+    train: null
+    val: null
+    test: null
 
 # --- Feature Engineering Settings ---
-# Defines features used primarily for ML models and potentially for hybrid DL models.
-feature_set: hybrid       # Options:
-                          # 'structured': Use only engineered structured features (rating, counts, sentiment, etc.).
-                          # 'nlp': Use only TF-IDF features from review text.
-                          # 'hybrid': Use both structured and TF-IDF features.
-
-text_max_features: 1000   # Max number of features (terms) for TF-IDF vectorizer (used if feature_set is 'nlp' or 'hybrid').
+feature_set: hybrid       # 'structured', 'nlp', 'hybrid' (for ML/Hybrid DL)
+text_max_features: 1000   # For TF-IDF
 
 # --- Deep Learning Specific Settings ---
-dl_feature_set: hybrid    # Input type for DL models. Options:
-                          # 'text': Use only tokenized review text (Embedding layer).
-                          # 'hybrid': Use tokenized text AND the first N structured features generated by feature_engineering.py.
-                          # Note: 'hybrid' DL requires 'feature_set' above to be 'structured' or 'hybrid' to generate the necessary structured features.
-
-dl_num_structured_features: 5 # Expected number of structured features if dl_feature_set is 'hybrid'.
-                              # Should match the number generated by feature_engineering.py (typically 5: rating, verified_encoded, word_count, char_count, sentiment).
-
-dl_max_words: 10000       # Max vocabulary size for DL Tokenizer.
-dl_max_len: 300           # Max sequence length for padding DL text inputs.
-dl_embedding_dim: 64      # Dimension of the Embedding layer in DL models.
-dl_epochs: 5              # Number of training epochs for DL models.
-dl_batch_size: 64         # Batch size for DL model training.
+dl_feature_set: hybrid    # 'text', 'hybrid' (for DL input)
+dl_num_structured_features: 5 # Expected count if dl_feature_set: 'hybrid'
+dl_max_words: 10000
+dl_max_len: 350
+dl_embedding_dim: 64
+dl_epochs: 10
+dl_batch_size: 64
 
 # --- Model Selection ---
-# Specify which models to run in this experiment.
 models_to_run:
-  # Machine Learning Models
-  ml: # List the ML models to run. MUST match keys in main.py's MODEL_DISPATCH.
-      # Available options: "random_forest", "svm", "gradient_boosting"
-      [] # Empty list means no ML models will run. Example: ["random_forest", "svm"]
-  # Deep Learning Models
-  dl: # List the DL models to run. MUST match keys in main.py's MODEL_DISPATCH.
-      # Available options: "cnn", "rcnn"
-      [] # Empty list means no DL models will run. Example: ["cnn"]
-  # Large Language Models
-  llm: # List the LLM identifiers to evaluate (e.g., from OpenAI).
-       # Exact names depend on the API provider.
-    - gpt-3.5-turbo
-    # - gpt-4
-    # - other_llm_model_id
+  ml: ['svm'] # ['svm','random_forest','gradient_boosting']
+  dl: [] #'cnn'] # ['cnn','rcnn']
+  llm_openai: # Replace with your actual OpenAI model ID
+    # - "gpt-4o-mini" 
+    #- 
+  llm_google: # valid Gemini model ID
+    # - "gemini-2.0-flash-lite" 
+    #-
 
 # --- LLM Evaluation Specific Configuration ---
 llm_evaluation:
-  # API Key: Set the environment variable specified here.
-  # The script llm_prediction.py currently has a HARDCODED fallback (INVALID KEY) - REMOVE/REPLACE IT.
-  api_key_env_var: "OPENAI_API_KEY" # Name of env var storing the key
-
-  # Sample Size: Set to null or omit to use the full test set. Set to e.g. 50 for quick tests.
-  test_sample_size: 500 # Run on 50 samples from test set (will be balanced if possible).
-
-  # Prompting Modes: List modes to run ('zero_shot', 'few_shot').
+  openai_api_key_env_var: "OPENAI_API_KEY" # provider_api_key_env_var 
+  google_api_key_env_var: "GOOGLE_API_KEY" # 
+  # anthropic_api_key_env_var: "ANTHROPIC_API_KEY" # Example for future LLM implementations
+  test_sample_size: 50 # null if running full prediction
   prompting_modes: ['zero_shot', 'few_shot']
-
-  # API Call Settings
-  request_timeout: 30 # Timeout in seconds for each API call.
-  max_retries: 3      # Max retries on API errors (like timeouts or rate limits).
-  retry_delay: 5      # Initial delay in seconds between retries (increases with attempts).
+  request_timeout: 30 # This will be passed to the wrapper's generate method
+  max_retries: 3
+  retry_delay: 5      # Initial delay (increases exponentially on retries)
 
   # -- Zero-Shot Configuration --
-  zero_shot_prompt_template: | # Prompt used when no examples are provided.
-    # --- Example Enhanced Zero-Shot Prompt ---
-    # You are an expert Amazon shopper evaluating review helpfulness.
-    # A helpful review offers specific details, pros/cons, comparisons, or unique insights.
-    # An unhelpful review is often vague, overly emotional, irrelevant, or provides no justification.
-    # Classify the following review text as either 'Helpful' or 'Unhelpful'.
-    # Respond with ONLY the word 'Helpful' or 'Unhelpful'. Do not add any other text.
+  zero_shot_prompt_template: |
+    You are an expert helpfulness classifier for online customer reviews.
+    Definition of Helpful (1): "A helpful review provides specific details about the product's features, performance, or usage context. It often includes clear pros and cons, compares the product to alternatives, offers unique insights, or justifies its rating with concrete examples. The review helps a potential buyer make an informed decision."
+    Definition of Unhelpful (0): "An unhelpful review is often vague, overly brief, purely emotional without justification, irrelevant to the product itself (e.g., complaining only about shipping), or contains nonsensical text. It does not provide useful information for a potential buyer."
 
-    # --- Original Zero-Shot Prompt ---
-    You are an expert classifier of Amazon reviews. Classify the following review text as either 'Helpful' or 'Unhelpful'.
-    Respond with ONLY the word 'Helpful' or 'Unhelpful'. Do not add any other text, reasoning, or punctuation.
+    Classify the following review text as either '1' (Helpful) or '0' (Unhelpful) based on the definitions provided.
+    Respond with ONLY the number '1' or '0'. Do not add any other text or punctuation.
 
     Review Text:
     ---
     {review_text}
     ---
 
-    Classification:
+    Classification (1 or 0):
 
   # -- Few-Shot Configuration --
   few_shot:
-    num_examples: 3 # Number of examples to select from training data.
+    num_examples: 2 # Number of examples from training set.
     # Selection strategy from training data:
-    # 'balanced_random': Tries to pick num_examples/2 helpful and num_examples/2 unhelpful.
-    # 'random': Picks randomly regardless of label.
-    # Future option: 'extreme_votes' (would require implementation in llm_prediction.py)
-    example_selection_strategy: 'balanced_random'
+    # 'balanced_random', 'random', 'extreme_helpful_vote'
+    example_selection_strategy: 'extreme_helpful_vote'
 
-    # Format string for each selected example shown to the LLM.
-    # Use {review_text} and {label_text} placeholders.
-    # Updated format based on user request:
+    # Format string for each selected example shown to the LLM (using 1/0).
     example_format: |
       "{review_text}" = {label_text}
 
-    # Main prompt template for few-shot.
-    # Use {examples} for the block of formatted examples and {review_text} for the text to classify.
+    # Main prompt template for few-shot (using 1/0).
     prompt_template: |
-      You are an expert classifier of Amazon reviews. Classify the final review text as either 'Helpful' or 'Unhelpful' based on the examples provided.
-      Respond with ONLY the word 'Helpful' or 'Unhelpful' for the final review. Do not add any other text, reasoning, or punctuation.
+      You are an expert helpfulness classifier for online customer reviews.
+      Use the following definitions and examples to classify the final review text.
+      Definition of Helpful (1): "A helpful review provides specific details about the product's features, performance, or usage context. It often includes clear pros and cons, compares the product to alternatives, offers unique insights, or justifies its rating with concrete examples. The review helps a potential buyer make an informed decision."
+      Definition of Unhelpful (0): "An unhelpful review is often vague, overly brief, purely emotional without justification, irrelevant to the product itself (e.g., complaining only about shipping), or contains nonsensical text. It does not provide useful information for a potential buyer."
+
+      Classify the final review text as either '1' (Helpful) or '0' (Unhelpful) based on the definitions and examples provided.
+      Respond with ONLY the number '1' or '0' for the final review. Do not add any other text or punctuation.
 
       Examples:
       ---
@@ -184,7 +132,7 @@ llm_evaluation:
       {review_text}
       ---
 
-      Classification:
+      Classification (1 or 0):
 
 # --- Output Directory ---
-output_dir: results/ # Base directory where run-specific folders (e.g., results/run_YYYYMMDD_HHMMSS/) will be created.
+output_dir: results/ # Base directory for saving run results.

@@ -1,0 +1,74 @@
+{
+    "svm": {
+        "metrics_across_all_categories_and_seeds": {
+            "avg_accuracy": 0.7086513994910941,
+            "avg_f1": 0.7056781483268063,
+            "avg_roc_auc": 0.7894830979805632,
+            "_avg_cm_ndarray": [
+                [
+                    1272.0,
+                    300.0
+                ],
+                [
+                    616.0,
+                    956.0
+                ]
+            ],
+            "total_runs": 1
+        },
+        "metrics_per_category": {
+            "CDs_and_Vinyl": {
+                "avg_accuracy": 0.7086513994910941,
+                "avg_f1": 0.7056781483268063,
+                "avg_roc_auc": 0.7894830979805632,
+                "_avg_cm_ndarray": [
+                    [
+                        1272.0,
+                        300.0
+                    ],
+                    [
+                        616.0,
+                        956.0
+                    ]
+                ],
+                "num_seeds": 1
+            }
+        }
+    },
+    "random_forest": {
+        "metrics_across_all_categories_and_seeds": {
+            "avg_accuracy": 0.7255089058524173,
+            "avg_f1": 0.7251785830947582,
+            "avg_roc_auc": 0.8000237942621836,
+            "_avg_cm_ndarray": [
+                [
+                    1195.0,
+                    377.0
+                ],
+                [
+                    486.0,
+                    1086.0
+                ]
+            ],
+            "total_runs": 1
+        },
+        "metrics_per_category": {
+            "CDs_and_Vinyl": {
+                "avg_accuracy": 0.7255089058524173,
+                "avg_f1": 0.7251785830947582,
+                "avg_roc_auc": 0.8000237942621836,
+                "_avg_cm_ndarray": [
+                    [
+                        1195.0,
+                        377.0
+                    ],
+                    [
+                        486.0,
+                        1086.0
+                    ]
+                ],
+                "num_seeds": 1
+            }
+        }
+    }
+}

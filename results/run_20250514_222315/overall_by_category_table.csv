@@ -1,0 +1,3 @@
+,cnn_Hybrid,llm_openai_gpt-4o-mini_few_shot,llm_openai_gpt-4o-mini_zero_shot,random_forest,svm
+CDs_and_Vinyl,0.7270992366412213,0.6,0.6,0.7255089058524173,0.7086513994910941
+Overall,0.7270992366412213,0.6,0.6,0.7255089058524173,0.7086513994910941

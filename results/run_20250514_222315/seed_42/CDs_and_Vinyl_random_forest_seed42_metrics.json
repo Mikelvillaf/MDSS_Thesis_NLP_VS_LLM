@@ -1,0 +1,45 @@
+{
+    "full_model_name_with_seed": "CDs_and_Vinyl_random_forest_seed42",
+    "category": "CDs_and_Vinyl",
+    "model_identifier": "random_forest",
+    "f1_score": 0.7251785830947582,
+    "accuracy": 0.7255089058524173,
+    "classification_report": {
+        "0": {
+            "precision": 0.7108863771564545,
+            "recall": 0.760178117048346,
+            "f1-score": 0.7347064248386105,
+            "support": 1572.0
+        },
+        "1": {
+            "precision": 0.7423103212576897,
+            "recall": 0.6908396946564885,
+            "f1-score": 0.7156507413509061,
+            "support": 1572.0
+        },
+        "accuracy": 0.7255089058524173,
+        "macro avg": {
+            "precision": 0.7265983492070721,
+            "recall": 0.7255089058524173,
+            "f1-score": 0.7251785830947584,
+            "support": 3144.0
+        },
+        "weighted avg": {
+            "precision": 0.726598349207072,
+            "recall": 0.7255089058524173,
+            "f1-score": 0.7251785830947582,
+            "support": 3144.0
+        }
+    },
+    "roc_auc": 0.8000237942621836,
+    "confusion_matrix_values": [
+        [
+            1195,
+            377
+        ],
+        [
+            486,
+            1086
+        ]
+    ]
+}

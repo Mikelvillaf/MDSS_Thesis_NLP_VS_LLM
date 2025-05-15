@@ -1,0 +1,154 @@
+random_seeds:
+- 42
+max_initial_rows_per_category: 1000000
+categories:
+- CDs_and_Vinyl
+year_range:
+- 2010
+- 2023
+labeling:
+  mode: percentile
+  helpful_ratio_min: 0.75
+  unhelpful_ratio_max: 0.25
+  top_percentile: 0.15
+  bottom_percentile: 0.15
+  min_total_votes: 1
+  use_length_filter: true
+  min_review_words: 15
+  max_review_words: 750
+temporal_split_years:
+  train_years:
+  - 2010
+  - 2011
+  - 2012
+  - 2013
+  - 2014
+  - 2015
+  - 2016
+  - 2017
+  - 2018
+  - 2019
+  val_year: 2020
+  test_year: 2021
+balanced_sampling:
+  use_strict_balancing: true
+  samples_per_class:
+    train: 40000
+    val: 5000
+    test: 5000
+  max_total_samples_imbalanced:
+    train: null
+    val: null
+    test: null
+feature_set: hybrid
+text_max_features: 1000
+dl_feature_set: hybrid
+dl_num_structured_features: 5
+dl_max_words: 10000
+dl_max_len: 350
+dl_embedding_dim: 64
+dl_epochs: 10
+dl_batch_size: 64
+models_to_run:
+  ml:
+  - svm
+  dl: []
+  llm_openai: null
+  llm_google: null
+llm_evaluation:
+  openai_api_key_env_var: OPENAI_API_KEY
+  google_api_key_env_var: GOOGLE_API_KEY
+  test_sample_size: 50
+  prompting_modes:
+  - zero_shot
+  - few_shot
+  request_timeout: 30
+  max_retries: 3
+  retry_delay: 5
+  zero_shot_prompt_template: 'You are an expert helpfulness classifier for online
+    customer reviews.
+
+    Definition of Helpful (1): "A helpful review provides specific details about the
+    product''s features, performance, or usage context. It often includes clear pros
+    and cons, compares the product to alternatives, offers unique insights, or justifies
+    its rating with concrete examples. The review helps a potential buyer make an
+    informed decision."
+
+    Definition of Unhelpful (0): "An unhelpful review is often vague, overly brief,
+    purely emotional without justification, irrelevant to the product itself (e.g.,
+    complaining only about shipping), or contains nonsensical text. It does not provide
+    useful information for a potential buyer."
+
+
+    Classify the following review text as either ''1'' (Helpful) or ''0'' (Unhelpful)
+    based on the definitions provided.
+
+    Respond with ONLY the number ''1'' or ''0''. Do not add any other text or punctuation.
+
+
+    Review Text:
+
+    ---
+
+    {review_text}
+
+    ---
+
+
+    Classification (1 or 0):
+
+    '
+  few_shot:
+    num_examples: 2
+    example_selection_strategy: extreme_helpful_vote
+    example_format: '"{review_text}" = {label_text}
+
+      '
+    prompt_template: 'You are an expert helpfulness classifier for online customer
+      reviews.
+
+      Use the following definitions and examples to classify the final review text.
+
+      Definition of Helpful (1): "A helpful review provides specific details about
+      the product''s features, performance, or usage context. It often includes clear
+      pros and cons, compares the product to alternatives, offers unique insights,
+      or justifies its rating with concrete examples. The review helps a potential
+      buyer make an informed decision."
+
+      Definition of Unhelpful (0): "An unhelpful review is often vague, overly brief,
+      purely emotional without justification, irrelevant to the product itself (e.g.,
+      complaining only about shipping), or contains nonsensical text. It does not
+      provide useful information for a potential buyer."
+
+
+      Classify the final review text as either ''1'' (Helpful) or ''0'' (Unhelpful)
+      based on the definitions and examples provided.
+
+      Respond with ONLY the number ''1'' or ''0'' for the final review. Do not add
+      any other text or punctuation.
+
+
+      Examples:
+
+      ---
+
+      {examples}
+
+      ---
+
+
+      Now classify this review:
+
+      Review Text:
+
+      ---
+
+      {review_text}
+
+      ---
+
+
+      Classification (1 or 0):
+
+      '
+output_dir: results/

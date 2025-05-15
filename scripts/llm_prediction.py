@@ -2,254 +2,202 @@
 import os
 import time
 import random
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Tuple, Union, Any
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 import warnings
+from abc import ABC, abstractmethod
 
-# Attempt to import openai, provide instructions if missing
-try:
-    from openai import OpenAI, APIError, Timeout, RateLimitError
+# For Google AI Client SDK (as per your provided, working snippet)
+# NO ALIAS. STRAIGHT IMPORT.
+from google import genai
+
+# For OpenAI
+try: # Keep try-except for OpenAI as it's pre-existing and allows optional install
+    from openai import OpenAI, APIError, RateLimitError, AuthenticationError, APIConnectionError, APITimeoutError
 except ImportError:
-    raise ImportError("OpenAI library not found. Please install it: pip install openai")
+    OpenAI = None
+    APIError = RateLimitError = AuthenticationError = APIConnectionError = APITimeoutError = Exception
 
 # --- Constants ---
-# WARNING: Hardcoding keys is insecure. Use environment variables for production.
-# For initial testing as requested, using the key from the PDF.
-# Replace with None or os.getenv("YOUR_ENV_VAR") in production.
-TESTING_API_KEY = "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"
+LABEL_MAP_TO_TEXT = {1: "1", 0: "0"}
+LABEL_MAP_FROM_TEXT = {"1": 1, "0": 0}
 
-LABEL_MAP_TO_TEXT = {1: "Helpful", 0: "Unhelpful"}
-LABEL_MAP_FROM_TEXT = {"helpful": 1, "unhelpful": 0}
+# --- LLM Wrapper Base Class ---
+class LLMWrapper(ABC):
+    def __init__(self, api_key_env_var: str, model_id: str, **kwargs):
+        self.model_id = model_id
+        self.api_key = os.getenv(api_key_env_var)
+        if not self.api_key:
+            raise ValueError(f"API key from env var '{api_key_env_var}' not found for {self.__class__.__name__} (model: {self.model_id}).")
+        self._setup_client(**kwargs)
 
-# --- Helper Functions ---
+    @abstractmethod
+    def _setup_client(self, **kwargs):
+        pass
 
-def _setup_openai_client(api_key: Optional[str] = None, env_var_name: Optional[str] = "OPENAI_API_KEY") -> Optional[OpenAI]:
-    """Initializes the OpenAI client."""
-    key_to_use = None
-    if api_key:
-        key_to_use = api_key
-        # print("   LLM: Using provided API key.")
-    elif env_var_name and os.getenv(env_var_name):
-        key_to_use = os.getenv(env_var_name)
-        # print(f"   LLM: Using API key from environment variable '{env_var_name}'.")
-    elif TESTING_API_KEY:
-         key_to_use = TESTING_API_KEY
-         warnings.warn(
-             "Using hardcoded TESTING_API_KEY from llm_prediction.py. "
-             "This is insecure and only for initial testing. Set the environment variable."
-         )
-         print("   LLM: WARNING - Using hardcoded testing API key.")
+    @abstractmethod
+    def generate(self, prompt: str, request_timeout: int) -> Optional[str]:
+        pass
 
-    if not key_to_use:
-        print(f"❌ LLM Error: OpenAI API key not found. Provide 'api_key' or set environment variable '{env_var_name}'.")
-        return None
+# --- OpenAI Wrapper (Assumed correct) ---
+class OpenAIWrapper(LLMWrapper):
+    def _setup_client(self, **kwargs):
+        if OpenAI is None:
+            raise ImportError("OpenAI library is not installed.")
+        self.client = OpenAI(api_key=self.api_key)
+        print(f"   OpenAI client initialized for model {self.model_id}.")
 
-    try:
-        client = OpenAI(api_key=key_to_use)
-        # Optional: Test connection (costs minimal tokens)
-        # client.models.list()
-        # print("   LLM: OpenAI client initialized successfully.")
-        return client
-    except Exception as e:
-        print(f"❌ LLM Error: Failed to initialize OpenAI client: {e}")
-        return None
+    def generate(self, prompt: str, request_timeout: int) -> Optional[str]:
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_id,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+                max_tokens=10,
+                timeout=request_timeout
+            )
+            return response.choices[0].message.content
+        except AuthenticationError as e:
+            print(f"\n❌ OpenAI Auth Error for {self.model_id}: {e}")
+            raise
+        except Exception:
+            return None
 
-def _parse_llm_response(response_content: str) -> Optional[int]:
-    """Parses the LLM's response ('Helpful'/'Unhelpful') into 1/0."""
-    if not response_content or not isinstance(response_content, str):
-        return None
-    # Clean whitespace and convert to lower case for robust matching
-    cleaned_response = response_content.strip().lower()
-    # Remove potential punctuation
-    cleaned_response = ''.join(filter(str.isalpha, cleaned_response))
+# --- Google AI Client Wrapper (Corrected to use YOUR genai.Client pattern) ---
+class GoogleWrapper(LLMWrapper):
+    def _setup_client(self, **kwargs):
+        # The 'genai' module is imported directly at the top of the file.
+        # We check if it was successfully imported and if it has the Client attribute.
+        if 'genai' not in globals() or genai is None or not hasattr(genai, "Client"):
+             raise ImportError("The 'genai' module from 'google' import does not seem to be correctly loaded or does not have a 'Client' attribute. Ensure the correct Google AI SDK is installed.")
+        
+        self.client = genai.Client(api_key=self.api_key) # Using the imported 'genai' directly
+        print(f"   Google AI Client initialized for model {self.model_id}.")
 
-    return LABEL_MAP_FROM_TEXT.get(cleaned_response, None) # Return None if not 'helpful' or 'unhelpful'
+    def generate(self, prompt: str, request_timeout: int) -> Optional[str]:
+        if not self.client:
+             return None
+        try:
+            api_model_id = self.model_id
+            if not self.model_id.startswith("models/"):
+                 api_model_id = f"models/{self.model_id}"
+            
+            response = self.client.models.generate_content(
+                model=api_model_id,
+                contents=prompt,
+            )
+            if hasattr(response, 'text'):
+                return response.text
+            # print(f"   Warning: Response object from Google AI Client for model {self.model_id} does not have a .text attribute. Response: {response}")
+            return None
+        except Exception:
+            return None
 
-def _build_zero_shot_prompt(template: str, review_text: str) -> str:
-    """Builds the zero-shot prompt using the template."""
-    return template.format(review_text=review_text)
+# --- Helper Functions (Unchanged) ---
+def _parse_llm_response(response_content: Optional[str]) -> Optional[int]:
+    if not isinstance(response_content, str): return None
+    cleaned_response = response_content.strip()
+    return LABEL_MAP_FROM_TEXT.get(cleaned_response, None)
 
-def _build_few_shot_prompt(template: str, examples_str: str, review_text: str) -> str:
-    """Builds the few-shot prompt using the template."""
-    return template.format(examples=examples_str, review_text=review_text)
+def _build_zero_shot_prompt(template: str, review_text: Any) -> str:
+    review_text_str = str(review_text) if review_text is not None else ""
+    return template.format(review_text=review_text_str)
+
+def _build_few_shot_prompt(template: str, examples_str: str, review_text: Any) -> str:
+    review_text_str = str(review_text) if review_text is not None else ""
+    return template.format(examples=examples_str, review_text=review_text_str)
 
 def _format_examples(examples_df: pd.DataFrame, format_template: str) -> str:
-    """Formats the selected few-shot examples into a single string."""
     example_strings = []
+    label_map = LABEL_MAP_TO_TEXT
     for _, row in examples_df.iterrows():
-        label_text = LABEL_MAP_TO_TEXT.get(row['label'], 'Unknown') # Convert 0/1 to text
-        # Ensure review_text exists, fallback to empty string if missing
-        review_text = row.get('full_text', '')
         try:
+            label_val = row.get('label')
+            if isinstance(label_val, np.generic): label_val = label_val.item()
+            label_text = label_map.get(label_val, '?')
+            review_text = str(row.get('full_text', ''))
             example_strings.append(
                 format_template.format(review_text=review_text, label_text=label_text).strip()
             )
-        except KeyError as e:
-             print(f"⚠️ Warning: Missing key '{e}' in format_template or examples_df row. Skipping example.")
-             continue
-
+        except KeyError: continue
+        except Exception: continue
     return "\n\n".join(example_strings)
 
 def select_few_shot_examples(
-    train_df: pd.DataFrame,
-    num_examples: int,
-    strategy: str,
-    seed: int
+    train_df: pd.DataFrame, num_examples: int, strategy: str, seed: int
 ) -> Optional[pd.DataFrame]:
-    """Selects examples from the training data for few-shot prompting."""
-    if 'label' not in train_df.columns or 'full_text' not in train_df.columns:
-        print("❌ LLM Error: train_df missing 'label' or 'full_text' for few-shot example selection.")
-        return None
-    if train_df.empty:
-         print("❌ LLM Error: train_df is empty, cannot select few-shot examples.")
-         return None
-
-    # Ensure num_examples is positive
-    if num_examples <= 0:
-        print(f"❌ LLM Error: num_examples must be positive, got {num_examples}.")
-        return None
-
-    if strategy == 'balanced_random':
-        n_each = num_examples // 2
-        if n_each == 0: # Handle case where num_examples is 1
-             print("⚠️ Warning: num_examples=1 for balanced strategy. Using random sampling instead.")
-             return select_few_shot_examples(train_df, num_examples, 'random', seed)
-
-        if num_examples % 2 != 0:
-             print(f"⚠️ Warning: num_examples ({num_examples}) is odd for balanced strategy. Using {n_each} per class (will result in {n_each*2} examples).")
-
-        helpful_pool = train_df[train_df['label'] == 1]
-        unhelpful_pool = train_df[train_df['label'] == 0]
-
-        # Sample, allowing replacement only if pool size is less than required sample size
-        helpful_examples = helpful_pool.sample(n=n_each, random_state=seed, replace=len(helpful_pool) < n_each)
-        unhelpful_examples = unhelpful_pool.sample(n=n_each, random_state=seed+1, replace=len(unhelpful_pool) < n_each)
-
-        if len(helpful_examples) < n_each or len(unhelpful_examples) < n_each:
-             print(f"⚠️ Warning: Could not sample {n_each} examples for each class. Available H: {len(helpful_pool)}, U: {len(unhelpful_pool)}. Using available.")
-
-        # Combine and shuffle
-        examples_df = pd.concat([helpful_examples, unhelpful_examples]).sample(frac=1, random_state=seed+2).reset_index(drop=True)
-        # Ensure we don't exceed num_examples (although balanced might return n_each*2 if num_examples was odd)
-        examples_df = examples_df.head(num_examples)
-
-    elif strategy == 'random':
-        examples_df = train_df.sample(n=num_examples, random_state=seed, replace=len(train_df) < num_examples)
-        if len(examples_df) < num_examples:
-            print(f"⚠️ Warning: Could not sample {num_examples} random examples. Available: {len(train_df)}. Using available.")
-    else:
-        print(f"❌ LLM Error: Unknown few-shot example selection strategy: '{strategy}'.")
-        return None
-
-    if examples_df.empty:
-         print("⚠️ Warning: No few-shot examples were selected.")
-         return None # Return None if empty after selection attempt
-
-    print(f"   Selected {len(examples_df)} few-shot examples using '{strategy}' strategy.")
+    required_cols = {'label', 'full_text'}
+    if strategy == 'extreme_helpful_vote': required_cols.add('helpful_vote')
+    if not required_cols.issubset(train_df.columns) or train_df.empty or num_examples <= 0: return None
+    examples_df = pd.DataFrame()
+    n_each = num_examples // 2
+    n_h_target = n_each + (num_examples % 2); n_u_target = n_each
+    train_df_copy = train_df.copy()
+    if strategy == 'random':
+        actual_n = min(num_examples, len(train_df_copy))
+        if actual_n > 0: examples_df = train_df_copy.sample(n=actual_n, random_state=seed)
+    elif strategy in ['balanced_random', 'extreme_helpful_vote']:
+        h_pool = train_df_copy[train_df_copy['label'] == 1].copy()
+        u_pool = train_df_copy[train_df_copy['label'] == 0].copy()
+        s_h = pd.DataFrame(); s_u = pd.DataFrame()
+        actual_n_h = min(n_h_target, len(h_pool)); actual_n_u = min(n_u_target, len(u_pool))
+        if strategy == 'balanced_random':
+            if actual_n_h > 0: s_h = h_pool.sample(n=actual_n_h, random_state=seed)
+            if actual_n_u > 0: s_u = u_pool.sample(n=actual_n_u, random_state=seed + 1)
+        elif strategy == 'extreme_helpful_vote':
+            h_pool['helpful_vote'] = pd.to_numeric(h_pool['helpful_vote'], errors='coerce').fillna(0)
+            u_pool['helpful_vote'] = pd.to_numeric(u_pool['helpful_vote'], errors='coerce').fillna(0)
+            if actual_n_h > 0: s_h = h_pool.nlargest(actual_n_h, 'helpful_vote', keep='first')
+            if actual_n_u > 0: s_u = u_pool.nsmallest(actual_n_u, 'helpful_vote', keep='first')
+        to_concat = [df for df in [s_h, s_u] if not df.empty]
+        if to_concat: examples_df = pd.concat(to_concat, ignore_index=True)
+    else: return None
+    if examples_df.empty: return None
+    if strategy != 'random': examples_df = examples_df.sample(frac=1, random_state=seed + 2).reset_index(drop=True)
     return examples_df
 
-
-# --- Main Prediction Function ---
-
 def get_llm_predictions(
-    client: OpenAI,
+    client_wrapper: LLMWrapper,
     texts_to_classify: List[str],
-    model_name: str,
-    mode: str, # 'zero_shot' or 'few_shot'
+    mode: str,
     prompt_template: str,
-    request_timeout: int = 30,
-    max_retries: int = 3,
-    retry_delay: int = 5,
+    request_timeout: int,
+    max_retries: int,
+    retry_delay: int,
     few_shot_examples_df: Optional[pd.DataFrame] = None,
     few_shot_example_format: Optional[str] = None
 ) -> Tuple[List[Optional[int]], int]:
-    """
-    Gets predictions from an OpenAI model for a list of texts using the specified mode.
-    (Indentation Corrected)
-    """
-    predictions = []
+    predictions: List[Optional[int]] = []
     failed_count = 0
-    examples_str = "" # Initialize
-
-    # --- Corrected Indentation Block Starts Here ---
+    examples_str = ""
     if mode == 'few_shot':
         if few_shot_examples_df is None or few_shot_examples_df.empty or not few_shot_example_format:
-            print("❌ LLM Error: Few-shot mode requires valid examples DataFrame and format template.")
-            # Return lists matching the length of input texts, with appropriate failure count
             return [None] * len(texts_to_classify), len(texts_to_classify)
-
         examples_str = _format_examples(few_shot_examples_df, few_shot_example_format)
-        if not examples_str:
-            # Check if examples_str is empty *after* trying to format
-            print("❌ LLM Error: Failed to format few-shot examples (result was empty string).")
-            return [None] * len(texts_to_classify), len(texts_to_classify)
-    # --- End Corrected Indentation Block ---
+        if not examples_str: return [None] * len(texts_to_classify), len(texts_to_classify)
 
-    print(f"   LLM: Getting predictions for {len(texts_to_classify)} texts using '{model_name}' ({mode})...")
-    # Using tqdm for progress bar
-    for text in tqdm(texts_to_classify, desc=f"LLM {mode} Prediction"):
-        # Build the appropriate prompt
-        if mode == 'zero_shot':
-            prompt = _build_zero_shot_prompt(prompt_template, text)
-        elif mode == 'few_shot':
-            # Ensure examples_str was successfully created above
-            if not examples_str: # Double check, though should be caught earlier
-                 print(f"❌ LLM Error: examples_str is empty for few-shot mode text: '{text[:50]}...'. Skipping.")
-                 predictions.append(None)
-                 failed_count += 1
-                 continue
-            prompt = _build_few_shot_prompt(prompt_template, examples_str, text)
-        else:
-            print(f"❌ LLM Error: Invalid mode '{mode}'.")
-            predictions.append(None)
-            failed_count += 1
-            continue
-
-        # Make API call with retries
-        prediction = None
+    model_id_for_logging = client_wrapper.model_id
+    for text in tqdm(texts_to_classify, desc=f"LLM {model_id_for_logging} {mode}", unit=" text"):
+        try:
+            if mode == 'zero_shot': prompt = _build_zero_shot_prompt(prompt_template, text)
+            elif mode == 'few_shot': prompt = _build_few_shot_prompt(template=prompt_template, examples_str=examples_str, review_text=text) # Ensure kwargs match
+            else: predictions.append(None); failed_count += 1; continue
+        except Exception: predictions.append(None); failed_count += 1; continue
+        prediction: Optional[int] = None
+        raw_response_content: Optional[str] = None
         for attempt in range(max_retries + 1):
             try:
-                response = client.chat.completions.create(
-                    model=model_name,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0,
-                    max_tokens=10, # Adjust if needed, but should be enough for "Helpful"/"Unhelpful"
-                    timeout=request_timeout
-                )
-                response_content = response.choices[0].message.content
-                prediction = _parse_llm_response(response_content)
-                if prediction is None:
-                     # Avoid printing entire response content if it's very long/irrelevant
-                     print(f"\n   ⚠️ LLM Warning: Failed to parse response: '{response_content[:100]}' for text: '{text[:50]}...'")
-                break # Success
-
-            except (Timeout, RateLimitError, APIError) as e:
-                print(f"\n   ⚠️ LLM Warning: API Error on attempt {attempt + 1}/{max_retries + 1}: {e}")
-                if attempt < max_retries:
-                    # Implement exponential backoff or just simple delay
-                    actual_delay = retry_delay * (attempt + 1) # Simple exponential backoff
-                    print(f"      Retrying in {actual_delay} seconds...")
-                    time.sleep(actual_delay)
-                else:
-                    print(f"❌ LLM Error: Max retries exceeded for text: '{text[:50]}...'")
-                    # Do not increment failed_count here, let the outer check handle it based on prediction being None
-            except Exception as e:
-                print(f"\n❌ LLM Error: Unexpected error during API call for text '{text[:50]}...': {e}")
-                # Do not increment failed_count here, let the outer check handle it
-                break # Unexpected error, don't retry
-
-        # Append prediction (will be None if all retries failed or parsing failed)
+                raw_response_content = client_wrapper.generate(prompt, request_timeout)
+                if raw_response_content is not None:
+                    prediction = _parse_llm_response(raw_response_content)
+                    if prediction is not None: break
+                if attempt < max_retries: time.sleep(retry_delay * (2 ** attempt))
+            except AuthenticationError: break
+            except Exception:
+                if attempt < max_retries: time.sleep(retry_delay * (2 ** attempt)); continue
+                else: break
+        if prediction is None: failed_count += 1
         predictions.append(prediction)
-        if prediction is None:
-            failed_count += 1 # Increment fail count if prediction is None after loop
-
-        # Optional: Add a small delay between requests to respect rate limits
-        time.sleep(0.05) # 50ms delay
-
-    if failed_count > 0:
-        print(f"   LLM: Completed predictions with {failed_count} failures out of {len(texts_to_classify)}.")
-    else:
-        print(f"   LLM: Completed predictions successfully for all {len(texts_to_classify)} texts.")
-
     return predictions, failed_count
