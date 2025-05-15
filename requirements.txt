@@ -1,12 +1,25 @@
-# Add required packages here
+# Core Data Science & Machine Learning
 pandas
 numpy
 scikit-learn
 matplotlib
-tqdm
+
+# Deep Learning
+tensorflow
+
+# LLM Interaction
 openai
+google-generativeai
+
+# Hyperparameter Tuning
+optuna
+
+# Utilities
 pyyaml
+tqdm
+textblob
+joblib
+
+# Experiment Tracking (Weave / Weights & Biases)
 weave
 wandb
-textblob
-tensorflow
