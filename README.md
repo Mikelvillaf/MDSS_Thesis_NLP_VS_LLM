@@ -30,8 +30,6 @@ To determine whether a customer review is **helpful** or **unhelpful** using dif
         -   `preprocessing.py`
         -   `tune_hyperparameters.py` # Script for Optuna-based tuning
         -   `utils.py`
-    -   `tests/`                # Placeholder for unit tests
-    -   `tracking/`             # Placeholder for tracking-related files
     -   `main.py`               # Orchestrates full experiment runs
     -   `requirements.txt`      # Python dependencies
 
