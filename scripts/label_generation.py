@@ -13,6 +13,7 @@ def generate_labels(
     helpful_ratio_min: float, 
     unhelpful_ratio_max: float, 
     min_total_votes: int, 
+    min_helpful_votes: int,
     use_length_filter: bool, 
     min_review_words: int, 
     max_review_words: int 
@@ -44,13 +45,29 @@ def generate_labels(
             print("   ⚠️ No reviews remaining after length filter.")
             return pd.DataFrame(columns=list(df.columns) + ['label'] if 'label' not in df.columns else df.columns).iloc[0:0]
 
+    # --- FILTERING LOGIC FOR HELPFUL VOTES ---
+    if min_helpful_votes is not None and min_helpful_votes > 0:
+        if "helpful_vote" in df_for_processing.columns:
+            # Ensure 'helpful_vote' is numeric before filtering
+            df_for_processing.loc[:, 'helpful_vote'] = pd.to_numeric(df_for_processing['helpful_vote'], errors='coerce').fillna(0)
+            
+            count_before_min_indiv_votes = len(df_for_processing)
+            df_for_processing = df_for_processing[df_for_processing["helpful_vote"] >= min_helpful_votes]
+            print(f"   Applied min_helpful_votes >= {min_helpful_votes} (on 'helpful_vote' column). Kept {len(df_for_processing)} of {count_before_min_indiv_votes} rows.")
+        else:
+            print(f"   ⚠️ 'helpful_vote' column not found for min_helpful_votes filter. Skipping this filter.") # Should not happen if preprocessing is correct
+    
+    if df_for_processing.empty: # Check if empty after this new filter
+        print("   ⚠️ No reviews remaining after min_helpful_votes filter (and possibly length filter).")
+        out_cols = list(df.columns)
+        if 'label' not in out_cols: out_cols.append('label')
+        return pd.DataFrame(columns=out_cols).iloc[0:0]
+
     # df_filtered will be the DataFrame used for labeling logic after this point
     df_filtered = df_for_processing # Start with the (potentially) length-filtered data
 
     # Conditionally apply min_total_votes filter
     # This filter is relevant if min_total_votes is specified AND (typically) if we are in threshold mode where total_vote is meaningful
-    # However, the config might set min_total_votes even for percentile mode if it's intended as a general pre-filter.
-    # The safest is to apply it if the column exists and the config value is restrictive.
     if min_total_votes is not None and min_total_votes > 0: # Check if filter is intended
         if "total_vote" in df_filtered.columns:
             # Ensure total_vote is numeric before filtering

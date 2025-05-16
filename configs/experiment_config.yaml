@@ -6,18 +6,18 @@ random_seeds: [42] #, 123, 2025] # List of random seeds for ensuring reproducibi
 # --- Data Source ---
 
 # Set to a number (e.g., 1000000) to limit, or null/omit to load all.
-max_initial_rows_per_category: 1000000 # Example: Load up to 1 million rows before any filtering
+max_initial_rows_per_category: 5000000 # Example: Load up to 1 million rows before any filtering
 
 categories:
   - CDs_and_Vinyl # Example category
   # - Books
   # - Home_and_Kitchen
   # - Beauty_and_Personal_Care
-  - Digital_Music
+  # - Digital_Music
   # - Cell_Phones_and_Accessories
 
 
-year_range: [2010, 2023] # Inclusive range [start_year, end_year] to filter reviews by timestamp.
+year_range: [2012, 2022] # Inclusive range [start_year, end_year] to filter reviews by timestamp.
 
 # --- Labeling Strategy ---
 labeling:
@@ -27,13 +27,14 @@ labeling:
   top_percentile: 0.25    # Used if mode: 'percentile'
   bottom_percentile: 0.25 # Used if mode: 'percentile'
   min_total_votes: 1      # Min votes for a review's product to be considered for labeling.
+  min_helpful_votes: 1 
   use_length_filter: true
   min_review_words: 15
   max_review_words: 750 # Consider aligning with paper (e.g., 500)
 
 # --- Temporal Data Splitting ---
 temporal_split_years:
-  train_years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
+  train_years: [2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
   val_year: 2020
   test_year: 2021
 
@@ -51,7 +52,7 @@ balanced_sampling:
 
 # --- Feature Engineering Settings ---
 feature_set: hybrid       # 'structured', 'nlp', 'hybrid' (for ML/Hybrid DL)
-text_max_features: 1000   # For TF-IDF
+text_max_features: 2000   # For TF-IDF
 
 # --- Deep Learning Specific Settings ---
 dl_feature_set: hybrid    # 'text', 'hybrid' (for DL input)

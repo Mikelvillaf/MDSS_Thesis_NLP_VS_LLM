@@ -90,7 +90,7 @@ def preprocess_reviews(
     df["clean_title"] = df["title"].apply(clean_text)
     df["full_text"] = df["clean_title"] + ". " + df["clean_text"]
     df["review_word_count"] = df["clean_text"].apply(lambda x: len(x.split())) # Was present in original
-    df["review_char_count"] = df["clean_text"].apply(len) # Was present in original
+    # df["review_char_count"] = df["clean_text"].apply(len) # Was present in original
 
 
     print(f"✅ Preprocessing complete. Final shape: {df.shape}")

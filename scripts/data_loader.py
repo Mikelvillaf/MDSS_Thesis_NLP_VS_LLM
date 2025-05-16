@@ -137,7 +137,7 @@ def load_reviews(
             df = df[(df["year"] >= year_range[0]) & (df["year"] <= year_range[1])]
             print(f"🗓️ Filtered by year {year_range}. Kept {len(df)} of {original_count_before_year_filter}.")
             if 'timestamp_dt' in df.columns: # Check if column exists before dropping
-                 df.drop(columns=['timestamp_dt'], inplace=True)
+                df.drop(columns=['timestamp_dt'], inplace=True)
         else:
             print("🗓️ DataFrame empty after dropping invalid timestamps (before year filter).")
     elif year_range:
@@ -171,6 +171,7 @@ def identify_label_candidates(df: pd.DataFrame, config: dict) -> pd.DataFrame:
             helpful_ratio_min=label_cfg.get('helpful_ratio_min'),
             unhelpful_ratio_max=label_cfg.get('unhelpful_ratio_max'),
             min_total_votes=label_cfg.get('min_total_votes'),
+            min_helpful_votes=label_cfg.get('min_helpful_votes'),
             use_length_filter=label_cfg.get('use_length_filter', False),
             min_review_words=label_cfg.get('min_review_words'),
             max_review_words=label_cfg.get('max_review_words')
@@ -188,12 +189,12 @@ def identify_label_candidates(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     if labeled_df.empty:
         print("⚠️ No reviews labeled.")
     elif 'label' not in labeled_df.columns or not labeled_df['label'].isin([0, 1]).any():
-         print("⚠️ generate_labels returned invalid labels.")
-         # Fallback for invalid labels
-         cols_to_return = list(df.columns)
-         if 'label' not in cols_to_return: cols_to_return.append('label')
-         if 'price' in df.columns and 'price' not in cols_to_return: cols_to_return.append('price')
-         return pd.DataFrame(columns=list(dict.fromkeys(cols_to_return))).iloc[0:0]
+        print("⚠️ generate_labels returned invalid labels.")
+        # Fallback for invalid labels
+        cols_to_return = list(df.columns)
+        if 'label' not in cols_to_return: cols_to_return.append('label')
+        if 'price' in df.columns and 'price' not in cols_to_return: cols_to_return.append('price')
+        return pd.DataFrame(columns=list(dict.fromkeys(cols_to_return))).iloc[0:0]
 
     return labeled_df
 
@@ -220,7 +221,7 @@ def _sample_period_data(
             print(f"   ⚠️ Cannot balance {period}: H={len(h_pool)}, U={len(u_pool)}, Target={n_target}.")
             return pd.DataFrame(columns=period_df.columns)
         if n_sample < n_target:
-             print(f"   ⚠️ {period}: Target={n_target}/class, possible={n_sample}.")
+            print(f"   ⚠️ {period}: Target={n_target}/class, possible={n_sample}.")
         s_h = h_pool.sample(n=n_sample, random_state=seed)
         s_u = u_pool.sample(n=n_sample, random_state=seed + 1)
         final_df = pd.concat([s_h, s_u], ignore_index=True)
@@ -316,9 +317,9 @@ def create_balanced_temporal_splits(
                     # Add missing column with appropriate NA type
                     # For 'label' specifically, it should be numeric if present, otherwise can be object
                     if col_name == 'label' and col_name in df.columns and pd.api.types.is_numeric_dtype(df[col_name]):
-                         split_df_current[col_name] = np.nan
+                        split_df_current[col_name] = np.nan
                     else:
-                         split_df_current[col_name] = pd.NA
+                        split_df_current[col_name] = pd.NA
             final_tuple_list.append(split_df_current[final_cols_order]) # Enforce column order
 
     return tuple(final_tuple_list)

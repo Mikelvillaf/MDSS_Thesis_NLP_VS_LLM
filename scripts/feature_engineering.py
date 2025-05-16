@@ -30,7 +30,8 @@ def _create_featurizer(feature_set: str = "hybrid", text_max_features: int = 100
         "rating",
         "verified_encoded",
         "review_word_count",
-        "review_char_count",
+        "title_sentiment_score",
+        # "review_char_count",
         "sentiment_score"
     ]
     # Define the text column expected from preprocessing
@@ -72,10 +73,11 @@ def _add_derived_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # Add derived features
     df_out["verified_encoded"] = df_out["verified_purchase"].apply(lambda x: 1 if x is True else 0)
-    df_out["sentiment_score"] = df_out["full_text"].apply(extract_sentiment)
+    df_out["sentiment_score"] = df_out["clean_text"].apply(extract_sentiment)
+    df_out["title_sentiment_score"] = df_out["clean_title"].apply(extract_sentiment)
     # Ensure clean_text is string before applying len/split
     df_out["review_word_count"] = df_out["clean_text"].astype(str).apply(lambda x: len(x.split()))
-    df_out["review_char_count"] = df_out["clean_text"].astype(str).apply(len)
+    # df_out["review_char_count"] = df_out["clean_text"].astype(str).apply(len)
 
     return df_out
 
@@ -90,7 +92,7 @@ def fit_feature_extractor(
 
     # Ensure label exists for fitting checks (though not used as feature)
     if "label" not in df_train.columns:
-         raise ValueError("Training data must include 'label' column.")
+        raise ValueError("Training data must include 'label' column.")
 
     df_train_clean = df_train.dropna(subset=["label"]).copy()
     if len(df_train_clean) < len(df_train):
@@ -104,7 +106,7 @@ def fit_feature_extractor(
     # Define columns required based on feature_set for fitting check
     required_cols_for_fit = set()
     if feature_set in ["structured", "hybrid"]:
-        required_cols_for_fit.update(["rating", "verified_encoded", "review_word_count", "review_char_count", "sentiment_score"])
+        required_cols_for_fit.update(["rating", "verified_encoded", "review_word_count", "title_sentiment_score", "sentiment_score"])
     if feature_set in ["nlp", "hybrid"]:
         required_cols_for_fit.add("full_text")
 
