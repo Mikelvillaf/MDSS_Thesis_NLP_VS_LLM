@@ -24,8 +24,8 @@ labeling:
   mode: "percentile" # 'threshold' or 'percentile'
   helpful_ratio_min: 0.75
   unhelpful_ratio_max: 0.25
-  top_percentile: 0.15    # Used if mode: 'percentile'
-  bottom_percentile: 0.15 # Used if mode: 'percentile'
+  top_percentile: 0.25    # Used if mode: 'percentile'
+  bottom_percentile: 0.25 # Used if mode: 'percentile'
   min_total_votes: 1      # Min votes for a review's product to be considered for labeling.
   use_length_filter: true
   min_review_words: 15

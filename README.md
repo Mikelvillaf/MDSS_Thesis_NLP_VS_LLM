@@ -2,7 +2,7 @@
 
 This project explores the prediction of review helpfulness on Amazon using various machine learning models and large language models (LLMs). It benchmarks traditional feature-based ML classifiers (Random Forest, SVM, Gradient Boosting), deep learning approaches (CNN, RCNN for text-only and hybrid features), and LLM-based classification (tested with models like GPT series via OpenAI API and Gemini series via Google API).
 
-The experiment uses a subset of the [Amazon Reviews 2023 dataset](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023), with a primary focus on the `CDs_and_Vinyl` category in current configurations. The codebase is designed for modularity, configurability, and reproducibility.
+The experiment uses a subset of the [Amazon Reviews 2023 dataset](https://amazon-reviews-2023.github.io). The codebase is designed for modularity, configurability, and reproducibility.
 
 ## 🔍 Objective
 
@@ -37,7 +37,7 @@ To determine whether a customer review is **helpful** or **unhelpful** using dif
 
 ## 📦 Dataset
 
-We use the [Amazon Reviews 2023 dataset](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023) by McAuley Lab. Experiments can be configured to run on specific categories (e.g., `CDs_and_Vinyl`) and filtered for a defined year range (e.g., 2010-2023, as set in `experiment_config.yaml`). Data is expected in JSONL format.
+We use the [Amazon Reviews 2023 dataset](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023) by McAuley Lab. Experiments can be configured to run on specific categories (e.g., `CDs_and_Vinyl`) and filtered for a defined year range (e.g., 2012-2022, as set in `experiment_config.yaml`). Data is expected in JSONL format.
 
 ### Key Data Fields:
 
