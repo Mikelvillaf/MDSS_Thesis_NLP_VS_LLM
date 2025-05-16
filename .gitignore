@@ -175,8 +175,8 @@ cython_debug/
 .pypirc
 .DS_Store
 
-# Ignore raw Amazon review data
-eda.ipynb
+# Ignore data & output folders
+eda/
 results/
 tests/
 tracking/

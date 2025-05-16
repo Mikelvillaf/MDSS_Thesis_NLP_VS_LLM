@@ -20,6 +20,7 @@ To determine whether a customer review is **helpful** or **unhelpful** using dif
         -   `hyperparameters.yaml`   # Tuned hyperparameters for models
     -   `data/`                 # Local review/meta files (not tracked by Git)
     -   `results/`              # Output: metrics, predictions, figures
+    -   `eda/`                  # Output: eda figures
     -   `scripts/`              # All processing and modeling logic
         -   `data_loader.py`
         -   `evaluation.py`
@@ -31,6 +32,7 @@ To determine whether a customer review is **helpful** or **unhelpful** using dif
         -   `tune_hyperparameters.py` # Script for Optuna-based tuning
         -   `utils.py`
     -   `main.py`               # Orchestrates full experiment runs
+    -   `eda.py`                # Creates eda figures
     -   `requirements.txt`      # Python dependencies
 
 ## 📦 Dataset
