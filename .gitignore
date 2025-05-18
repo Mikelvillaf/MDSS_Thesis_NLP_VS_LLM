@@ -183,3 +183,6 @@ tracking/
 data/
 data/*.jsonl
 data/*.jsonl.gz
+sshkey.txt
+sshkeymv.pub
+metal_test.py

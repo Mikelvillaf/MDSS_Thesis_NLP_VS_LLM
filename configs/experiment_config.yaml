@@ -6,14 +6,14 @@ random_seeds: [42, 123, 2025] # List of random seeds for ensuring reproducibilit
 # --- Data Source ---
 
 # Set to a number (e.g., 1000000) to limit, or null/omit to load all.
-max_initial_rows_per_category: 5000000 # Example: Load up to 1 million rows before any filtering
+max_initial_rows_per_category: 1000000 # Example: Load up to 1 million rows before any filtering
 
 categories:
-  - CDs_and_Vinyl 
+  # - CDs_and_Vinyl 
   - Books
   - Home_and_Kitchen
   - Beauty_and_Personal_Care
-  - Cell_Phones_and_Accessories
+  # - Cell_Phones_and_Accessories
 
   # - Digital_Music #test category
 
@@ -43,9 +43,9 @@ temporal_split_years:
 balanced_sampling:
   use_strict_balancing: true # Target 50/50 splits for ML/DL train/val/test
   samples_per_class:
-    train: 40000
-    val: 5000
-    test: 5000
+    train: 5000
+    val: 1250
+    test: 1250
   max_total_samples_imbalanced: # Used if use_strict_balancing: false
     train: null
     val: null
@@ -64,15 +64,16 @@ dl_embedding_dim: 64
 dl_epochs: 10
 dl_batch_size: 64
 
+
 # --- Model Selection ---
 models_to_run:
-  ml: ['svm','random_forest','gradient_boosting'] # Available models ['svm','random_forest','gradient_boosting']
-  dl: ['cnn','rcnn'] # Available models ['cnn','rcnn'] 
+  ml: ['svm', 'random_forest'] # ['svm','random_forest','gradient_boosting'] # Available models ['svm','random_forest','gradient_boosting']
+  dl: ['cnn','rcnn'] # ['cnn','rcnn'] # Available models ['cnn','rcnn'] 
   llm_openai: # Replace with your actual OpenAI model ID
     - "gpt-4o-mini" 
     #- 
   llm_google: # valid Gemini model ID
-    - "gemini-2.0-flash-lite" 
+    # - "gemini-2.0-flash-lite" 
     #-
 
 # --- LLM Evaluation Specific Configuration ---
@@ -80,7 +81,7 @@ llm_evaluation:
   openai_api_key_env_var: "OPENAI_API_KEY" # provider_api_key_env_var 
   google_api_key_env_var: "GOOGLE_API_KEY" # 
   # anthropic_api_key_env_var: "ANTHROPIC_API_KEY" # Example for future LLM implementations
-  test_sample_size: 10 # null if running full prediction
+  test_sample_size: null # null if running full prediction
   prompting_modes: ['zero_shot', 'few_shot']
   request_timeout: 30 # This will be passed to the wrapper's generate method
   max_retries: 3
@@ -89,12 +90,10 @@ llm_evaluation:
 
   # -- Zero-Shot Configuration --
   zero_shot_prompt_template: |
-    You are an expert helpfulness classifier for online customer reviews.
-    Definition of Helpful (1): "A helpful review provides specific details about the product's features, performance, or usage context. It often includes clear pros and cons, compares the product to alternatives, offers unique insights, or justifies its rating with concrete examples. The review helps a potential buyer make an informed decision."
-    Definition of Unhelpful (0): "An unhelpful review is often vague, overly brief, purely emotional without justification, irrelevant to the product itself (e.g., complaining only about shipping), or contains nonsensical text. It does not provide useful information for a potential buyer."
-
-    Classify the following review text as either '1' (Helpful) or '0' (Unhelpful) based on the definitions provided.
-    Respond with ONLY the number '1' or '0'. Do not add any other text or punctuation.
+    Your task is to classify a customer review as either 'Helpful' or 'Unhelpful' based on its content.
+    Use the following definitions to make your classification. Your response must be ONLY '1' (Helpful) or '0' (Unhelpful).
+    Helpful (1): "The review provides specific details and elaborates on the product's features, performance, quality, or the user's direct experience with it. It often includes concrete examples, describes usage scenarios, or offers a reasoned perspective (e.g., pros and cons). The review is sufficiently informative, clearly written, and focuses primarily on the product itself, thereby aiding a potential buyer in making an informed decision. It offers insights beyond generic statements or the basic product description."
+    Unhelpful (0): "The review is vague, lacks specific details or examples, or is excessively brief (e.g., few words lacking elaboration). It may consist of primarily emotional statements without supporting explanations tied to product experience. The content might focus predominantly on aspects external to the product's intrinsic qualities (e.g., issues *only* with shipping or seller, without evaluating the product itself), be difficult to understand due to significant issues with clarity or structure, or primarily pose a question rather than share an experience. It does not offer substantial, actionable information for a buyer's decision-making process regarding the product."
 
     Review Text:
     ---
@@ -116,13 +115,12 @@ llm_evaluation:
 
     # Main prompt template for few-shot (using 1/0).
     prompt_template: |
-      You are an expert helpfulness classifier for online customer reviews.
-      Use the following definitions and examples to classify the final review text.
-      Definition of Helpful (1): "A helpful review provides specific details about the product's features, performance, or usage context. It often includes clear pros and cons, compares the product to alternatives, offers unique insights, or justifies its rating with concrete examples. The review helps a potential buyer make an informed decision."
-      Definition of Unhelpful (0): "An unhelpful review is often vague, overly brief, purely emotional without justification, irrelevant to the product itself (e.g., complaining only about shipping), or contains nonsensical text. It does not provide useful information for a potential buyer."
+      Your task is to classify a customer review as either 'Helpful' or 'Unhelpful' based on its content.
+      Use the following definitions and illustrative examples to guide your classification of the final review. Your response for the final review must be ONLY '1' (Helpful) or '0' (Unhelpful).
 
-      Classify the final review text as either '1' (Helpful) or '0' (Unhelpful) based on the definitions and examples provided.
-      Respond with ONLY the number '1' or '0' for the final review. Do not add any other text or punctuation.
+      Definitions:
+      Helpful (1): "The review provides specific details and elaborates on the product's features, performance, quality, or the user's direct experience with it. It often includes concrete examples, describes usage scenarios, or offers a reasoned perspective (e.g., pros and cons). The review is sufficiently informative, clearly written, and focuses primarily on the product itself, thereby aiding a potential buyer in making an informed decision. It offers insights beyond generic statements or the basic product description."
+      Unhelpful (0): "The review is vague, lacks specific details or examples, or is excessively brief (e.g., few words lacking elaboration). It may consist of primarily emotional statements without supporting explanations tied to product experience. The content might focus predominantly on aspects external to the product's intrinsic qualities (e.g., issues *only* with shipping or seller, without evaluating the product itself), be difficult to understand due to significant issues with clarity or structure, or primarily pose a question rather than share an experience. It does not offer substantial, actionable information for a buyer's decision-making process regarding the product."
 
       Examples:
       ---
