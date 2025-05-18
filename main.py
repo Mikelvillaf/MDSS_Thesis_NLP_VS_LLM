@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import weave
 import yaml
 import random
 import time
@@ -46,6 +47,7 @@ MODEL_DISPATCH = {
     "cnn": model_training.train_cnn,
     "rcnn": model_training.train_rcnn
 }
+# weave.init('MDSS Thesis')
 
 # Modified signature to accept all_hyperparameters
 def run_pipeline_for_seed(config: dict, seed: int, main_run_dir: str, all_hyperparameters: dict) -> List[dict]:
@@ -95,6 +97,7 @@ def run_pipeline_for_seed(config: dict, seed: int, main_run_dir: str, all_hyperp
     request_timeout = llm_overall_config.get("request_timeout", 30)
     max_retries = llm_overall_config.get("max_retries", 3)
     retry_delay = llm_overall_config.get("retry_delay", 5)
+    llm_api_max_output_tokens = llm_overall_config.get("llm_max_output_tokens", None) # Or e.g., 5 as a default
 
 
     if not categories_to_run:
@@ -528,6 +531,7 @@ def run_pipeline_for_seed(config: dict, seed: int, main_run_dir: str, all_hyperp
                                     texts_to_classify=test_texts_llm_val,
                                     mode=mode, prompt_template=current_prompt_template_val,
                                     request_timeout=request_timeout, max_retries=max_retries, retry_delay=retry_delay,
+                                    llm_max_output_tokens=llm_api_max_output_tokens,
                                     few_shot_examples_df=current_few_shot_examples_for_mode,
                                     few_shot_example_format=current_example_format_val
                                 )

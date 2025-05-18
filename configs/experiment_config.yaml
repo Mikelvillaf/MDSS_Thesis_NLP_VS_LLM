@@ -1,7 +1,7 @@
 # Configuration file for the Review Helpfulness Prediction Pipeline
 
 # --- General Settings ---
-random_seeds: [42] #, 123, 2025] # List of random seeds for ensuring reproducibility across runs. One run per seed.
+random_seeds: [42, 123, 2025] # List of random seeds for ensuring reproducibility across runs. One run per seed.
 
 # --- Data Source ---
 
@@ -9,34 +9,35 @@ random_seeds: [42] #, 123, 2025] # List of random seeds for ensuring reproducibi
 max_initial_rows_per_category: 5000000 # Example: Load up to 1 million rows before any filtering
 
 categories:
-  - CDs_and_Vinyl # Example category
-  # - Books
-  # - Home_and_Kitchen
-  # - Beauty_and_Personal_Care
-  # - Digital_Music
-  # - Cell_Phones_and_Accessories
+  - CDs_and_Vinyl 
+  - Books
+  - Home_and_Kitchen
+  - Beauty_and_Personal_Care
+  - Cell_Phones_and_Accessories
+
+  # - Digital_Music #test category
 
 
-year_range: [2012, 2022] # Inclusive range [start_year, end_year] to filter reviews by timestamp.
+year_range: [2010, 2019] # Inclusive range [start_year, end_year] to filter reviews by timestamp.
 
 # --- Labeling Strategy ---
 labeling:
   mode: "percentile" # 'threshold' or 'percentile'
   helpful_ratio_min: 0.75
   unhelpful_ratio_max: 0.25
-  top_percentile: 0.25    # Used if mode: 'percentile'
-  bottom_percentile: 0.25 # Used if mode: 'percentile'
+  top_percentile: 0.15    # Used if mode: 'percentile'
+  bottom_percentile: 0.15 # Used if mode: 'percentile'
   min_total_votes: 1      # Min votes for a review's product to be considered for labeling.
   min_helpful_votes: 1 
   use_length_filter: true
   min_review_words: 15
-  max_review_words: 750 # Consider aligning with paper (e.g., 500)
+  max_review_words: 500 # Consider aligning with paper (e.g., 500)
 
 # --- Temporal Data Splitting ---
 temporal_split_years:
-  train_years: [2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
-  val_year: 2020
-  test_year: 2021
+  train_years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017] #, 2018, 2019]
+  val_year: 2018
+  test_year: 2019
 
 # --- Data Sampling Strategy ---
 balanced_sampling:
@@ -65,13 +66,13 @@ dl_batch_size: 64
 
 # --- Model Selection ---
 models_to_run:
-  ml: ['svm'] # ['svm','random_forest','gradient_boosting']
-  dl: [] #'cnn'] # ['cnn','rcnn']
+  ml: ['svm','random_forest','gradient_boosting'] # Available models ['svm','random_forest','gradient_boosting']
+  dl: ['cnn','rcnn'] # Available models ['cnn','rcnn'] 
   llm_openai: # Replace with your actual OpenAI model ID
-    # - "gpt-4o-mini" 
+    - "gpt-4o-mini" 
     #- 
   llm_google: # valid Gemini model ID
-    # - "gemini-2.0-flash-lite" 
+    - "gemini-2.0-flash-lite" 
     #-
 
 # --- LLM Evaluation Specific Configuration ---
@@ -79,11 +80,12 @@ llm_evaluation:
   openai_api_key_env_var: "OPENAI_API_KEY" # provider_api_key_env_var 
   google_api_key_env_var: "GOOGLE_API_KEY" # 
   # anthropic_api_key_env_var: "ANTHROPIC_API_KEY" # Example for future LLM implementations
-  test_sample_size: 50 # null if running full prediction
+  test_sample_size: 10 # null if running full prediction
   prompting_modes: ['zero_shot', 'few_shot']
   request_timeout: 30 # This will be passed to the wrapper's generate method
   max_retries: 3
   retry_delay: 5      # Initial delay (increases exponentially on retries)
+  llm_max_output_tokens: 1
 
   # -- Zero-Shot Configuration --
   zero_shot_prompt_template: |

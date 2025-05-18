@@ -6,19 +6,24 @@ from typing import List, Optional, Dict, Tuple, Union, Any
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-import warnings
 from abc import ABC, abstractmethod
 
-# For Google AI Client SDK (as per your provided, working snippet)
-# NO ALIAS. STRAIGHT IMPORT.
+# For Google AI Client SDK
 from google import genai
+try:
+    # Explicitly import 'types' from 'google.genai' based on YOUR documentation snippet
+    from google.genai import types as GoogleGenAITypes
+except ImportError:
+    GoogleGenAITypes = None # Will be checked before use
+    print("Warning: Could not import 'types' from 'google.genai'. "
+        "Advanced generation configuration for Google models (max_output_tokens, temperature) via GenerateContentConfig will not be applied.")
 
 # For OpenAI
-try: # Keep try-except for OpenAI as it's pre-existing and allows optional install
+try:
     from openai import OpenAI, APIError, RateLimitError, AuthenticationError, APIConnectionError, APITimeoutError
 except ImportError:
-    OpenAI = None
-    APIError = RateLimitError = AuthenticationError = APIConnectionError = APITimeoutError = Exception
+    OpenAI = None # type: ignore
+    APIError = RateLimitError = AuthenticationError = APIConnectionError = APITimeoutError = Exception # type: ignore
 
 # --- Constants ---
 LABEL_MAP_TO_TEXT = {1: "1", 0: "0"}
@@ -38,10 +43,10 @@ class LLMWrapper(ABC):
         pass
 
     @abstractmethod
-    def generate(self, prompt: str, request_timeout: int) -> Optional[str]:
+    def generate(self, prompt: str, request_timeout: int, max_output_tokens: Optional[int] = None) -> Optional[str]:
         pass
 
-# --- OpenAI Wrapper (Assumed correct) ---
+# --- OpenAI Wrapper ---
 class OpenAIWrapper(LLMWrapper):
     def _setup_client(self, **kwargs):
         if OpenAI is None:
@@ -49,50 +54,87 @@ class OpenAIWrapper(LLMWrapper):
         self.client = OpenAI(api_key=self.api_key)
         print(f"   OpenAI client initialized for model {self.model_id}.")
 
-    def generate(self, prompt: str, request_timeout: int) -> Optional[str]:
+    def generate(self, prompt: str, request_timeout: int, max_output_tokens: Optional[int] = None) -> Optional[str]:
         try:
-            response = self.client.chat.completions.create(
-                model=self.model_id,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0,
-                max_tokens=10,
-                timeout=request_timeout
-            )
+            completion_params: Dict[str, Any] = {
+                "model": self.model_id,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0,
+                "timeout": request_timeout
+            }
+            if max_output_tokens is not None:
+                completion_params["max_tokens"] = max_output_tokens
+            else:
+                completion_params["max_tokens"] = 10 # Fallback
+            
+            response = self.client.chat.completions.create(**completion_params)
             return response.choices[0].message.content
         except AuthenticationError as e:
             print(f"\n❌ OpenAI Auth Error for {self.model_id}: {e}")
             raise
-        except Exception:
+        except Exception as e:
+            print(f"\n❌ OpenAI API Error for {self.model_id} (attempt): {type(e).__name__} - {e}")
             return None
 
-# --- Google AI Client Wrapper (Corrected to use YOUR genai.Client pattern) ---
+# --- Google AI Client Wrapper ---
 class GoogleWrapper(LLMWrapper):
     def _setup_client(self, **kwargs):
-        # The 'genai' module is imported directly at the top of the file.
-        # We check if it was successfully imported and if it has the Client attribute.
         if 'genai' not in globals() or genai is None or not hasattr(genai, "Client"):
-             raise ImportError("The 'genai' module from 'google' import does not seem to be correctly loaded or does not have a 'Client' attribute. Ensure the correct Google AI SDK is installed.")
-        
-        self.client = genai.Client(api_key=self.api_key) # Using the imported 'genai' directly
+            raise ImportError("The 'genai' module (for genai.Client) does not seem to be correctly loaded.")
+        if GoogleGenAITypes is None:
+            print("   Warning: 'google.genai.types' could not be imported. Max output tokens and temperature for Google models will use defaults.")
+        elif not hasattr(GoogleGenAITypes, 'GenerateContentConfig'):
+            print("   Warning: 'google.genai.types.GenerateContentConfig' not found. Max output tokens and temperature for Google models will use defaults.")
+
+
+        self.client = genai.Client(api_key=self.api_key)
         print(f"   Google AI Client initialized for model {self.model_id}.")
 
-    def generate(self, prompt: str, request_timeout: int) -> Optional[str]:
+    def generate(self, prompt: str, request_timeout: int, max_output_tokens: Optional[int] = None) -> Optional[str]:
+        # request_timeout is not directly used by this specific client.models.generate_content()
         if not self.client:
-             return None
+            return None
         try:
             api_model_id = self.model_id
             if not self.model_id.startswith("models/"):
-                 api_model_id = f"models/{self.model_id}"
+                api_model_id = f"models/{self.model_id}"
             
+            config_for_api = None # Initialize to None
+            if GoogleGenAITypes is not None and hasattr(GoogleGenAITypes, 'GenerateContentConfig'):
+                # Only create config object if 'types' and 'GenerateContentConfig' are available
+                config_params: Dict[str, Any] = {
+                    "temperature": 0.0, # Default temperature
+                }
+                if max_output_tokens is not None:
+                    config_params["max_output_tokens"] = max_output_tokens
+                
+                # Instantiate types.GenerateContentConfig if we have parameters for it
+                if "max_output_tokens" in config_params or "temperature" in config_params:
+                    try:
+                        config_for_api = GoogleGenAITypes.GenerateContentConfig(**config_params)
+                    except Exception as e_cfg:
+                        print(f"  Warning: Failed to instantiate google.genai.types.GenerateContentConfig with params {config_params}: {e_cfg}. API call will use defaults for config.")
+                        config_for_api = None # Ensure it's None if instantiation failed
+            
+            # Use 'config=' parameter as per your documentation snippet
             response = self.client.models.generate_content(
                 model=api_model_id,
                 contents=prompt,
+                config=config_for_api # Pass the GenerateContentConfig object (or None)
             )
-            if hasattr(response, 'text'):
+
+            if hasattr(response, 'text') and response.text is not None:
                 return response.text
-            # print(f"   Warning: Response object from Google AI Client for model {self.model_id} does not have a .text attribute. Response: {response}")
+            if hasattr(response, 'parts') and response.parts:
+                text_parts = [part.text for part in response.parts if hasattr(part, 'text') and part.text]
+                if text_parts:
+                    return "".join(text_parts)
+            print(f"   Warning: Response from Google AI for model {self.model_id} had no '.text' or parsable '.parts'. Response: {response}")
             return None
-        except Exception:
+        except Exception as e:
+            print(f"\n❌ Google AI API Error for {self.model_id} during generate: {type(e).__name__} - {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
 # --- Helper Functions (Unchanged) ---
@@ -166,38 +208,63 @@ def get_llm_predictions(
     request_timeout: int,
     max_retries: int,
     retry_delay: int,
+    llm_max_output_tokens: Optional[int] = None, 
     few_shot_examples_df: Optional[pd.DataFrame] = None,
     few_shot_example_format: Optional[str] = None
 ) -> Tuple[List[Optional[int]], int]:
     predictions: List[Optional[int]] = []
     failed_count = 0
     examples_str = ""
+
     if mode == 'few_shot':
         if few_shot_examples_df is None or few_shot_examples_df.empty or not few_shot_example_format:
             return [None] * len(texts_to_classify), len(texts_to_classify)
         examples_str = _format_examples(few_shot_examples_df, few_shot_example_format)
-        if not examples_str: return [None] * len(texts_to_classify), len(texts_to_classify)
+        if not examples_str:
+            return [None] * len(texts_to_classify), len(texts_to_classify)
 
     model_id_for_logging = client_wrapper.model_id
-    for text in tqdm(texts_to_classify, desc=f"LLM {model_id_for_logging} {mode}", unit=" text"):
+    for text_idx, text in enumerate(tqdm(texts_to_classify, desc=f"LLM {model_id_for_logging} {mode}", unit=" text")):
+        current_prompt: Optional[str] = None
         try:
-            if mode == 'zero_shot': prompt = _build_zero_shot_prompt(prompt_template, text)
-            elif mode == 'few_shot': prompt = _build_few_shot_prompt(template=prompt_template, examples_str=examples_str, review_text=text) # Ensure kwargs match
-            else: predictions.append(None); failed_count += 1; continue
-        except Exception: predictions.append(None); failed_count += 1; continue
+            if mode == 'zero_shot': current_prompt = _build_zero_shot_prompt(prompt_template, text)
+            elif mode == 'few_shot': current_prompt = _build_few_shot_prompt(template=prompt_template, examples_str=examples_str, review_text=text)
+            else:
+                predictions.append(None); failed_count += 1; continue
+            if not current_prompt:
+                predictions.append(None); failed_count += 1; continue
+        except Exception:
+            predictions.append(None); failed_count += 1; continue
+        
         prediction: Optional[int] = None
         raw_response_content: Optional[str] = None
+
         for attempt in range(max_retries + 1):
             try:
-                raw_response_content = client_wrapper.generate(prompt, request_timeout)
+                raw_response_content = client_wrapper.generate(current_prompt, request_timeout, max_output_tokens=llm_max_output_tokens)
+                
                 if raw_response_content is not None:
                     prediction = _parse_llm_response(raw_response_content)
-                    if prediction is not None: break
-                if attempt < max_retries: time.sleep(retry_delay * (2 ** attempt))
-            except AuthenticationError: break
-            except Exception:
-                if attempt < max_retries: time.sleep(retry_delay * (2 ** attempt)); continue
-                else: break
-        if prediction is None: failed_count += 1
+                    if prediction is not None:
+                        break 
+                
+                if attempt < max_retries:
+                    time.sleep(retry_delay * (2 ** attempt))
+                
+            except AuthenticationError:
+                print(f"\n❌ Authentication Error for {model_id_for_logging}. Stopping retries for this item.")
+                break 
+            except Exception as e:
+                print(f"\n❌ Error during generate/parse attempt {attempt + 1} for {model_id_for_logging}: {type(e).__name__} - {e}")
+                if attempt < max_retries:
+                    time.sleep(retry_delay * (2 ** attempt))
+                    continue
+                else:
+                    print(f"\n❌ Max retries reached for item after general error. Error: {e}")
+                    break 
+        
+        if prediction is None:
+            failed_count += 1
         predictions.append(prediction)
+        
     return predictions, failed_count
