@@ -25,8 +25,8 @@ labeling:
   mode: "percentile" # 'threshold' or 'percentile'
   helpful_ratio_min: 0.75
   unhelpful_ratio_max: 0.25
-  top_percentile: 0.15    # Used if mode: 'percentile'
-  bottom_percentile: 0.15 # Used if mode: 'percentile'
+  top_percentile: 0.10    # Used if mode: 'percentile'
+  bottom_percentile: 0.10 # Used if mode: 'percentile'
   min_total_votes: 1      # Min votes for a review's product to be considered for labeling.
   min_helpful_votes: 1 
   use_length_filter: true
@@ -84,7 +84,7 @@ llm_evaluation:
   test_sample_size: null # null if running full prediction
   prompting_modes: ['zero_shot', 'few_shot']
   request_timeout: 30 # This will be passed to the wrapper's generate method
-  max_retries: 3
+  max_retries: 5
   retry_delay: 5      # Initial delay (increases exponentially on retries)
   llm_max_output_tokens: 1
 
